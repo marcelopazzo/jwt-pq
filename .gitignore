@@ -1,0 +1,17 @@
+/.bundle/
+/vendor/bundle
+/vendor/liboqs/
+/tmp/
+/pkg/
+*.gem
+Gemfile.lock
+/.yardoc
+/_yardoc/
+/doc/
+/rdoc/
+/coverage/
+/.idea/
+*.swp
+*.swo
+*~
+.DS_Store
