@@ -81,13 +81,17 @@ def extract_tarball(tarball_path, dest_dir)
     Zlib::GzipReader.wrap(file) do |gz|
       Gem::Package::TarReader.new(gz) do |tar|
         tar.each do |entry|
-          dest = File.join(dest_dir, entry.full_name)
+          dest = File.expand_path(File.join(dest_dir, entry.full_name))
+          unless dest.start_with?("#{File.expand_path(dest_dir)}/")
+            abort "ERROR: path traversal detected in tarball: #{entry.full_name}"
+          end
+
           if entry.directory?
             FileUtils.mkdir_p(dest)
           elsif entry.file?
             FileUtils.mkdir_p(File.dirname(dest))
             File.binwrite(dest, entry.read)
-            File.chmod(entry.header.mode, dest) if entry.header.mode
+            File.chmod(entry.header.mode, dest) if entry.header.mode && entry.header.mode > 0
           end
         end
       end
