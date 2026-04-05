@@ -99,4 +99,31 @@ RSpec.describe JWT::PQ::Key do
       expect(key.to_s).to eq(key.inspect)
     end
   end
+
+  describe "#destroy!" do
+    let(:key) { described_class.generate(:ml_dsa_44) }
+
+    it "zeros and removes the private key" do
+      expect(key).to be_private
+      key.destroy!
+      expect(key).not_to be_private
+      expect(key.private_key).to be_nil
+    end
+
+    it "prevents signing after destroy" do
+      key.destroy!
+      expect { key.sign("data") }.to raise_error(JWT::PQ::KeyError, /Private key/)
+    end
+
+    it "still allows verification after destroy" do
+      sig = key.sign("data")
+      key.destroy!
+      expect(key.verify("data", sig)).to be true
+    end
+
+    it "is safe to call on a public-only key" do
+      pub_key = described_class.from_public_key(:ml_dsa_44, key.public_key)
+      expect(pub_key.destroy!).to be true
+    end
+  end
 end

@@ -63,6 +63,16 @@ module JWT
         !@private_key.nil?
       end
 
+      # Zero and discard private key material from Ruby memory.
+      # After calling this, the key can only be used for verification.
+      def destroy!
+        if @private_key
+          @private_key.replace("\0" * @private_key.bytesize)
+          @private_key = nil
+        end
+        true
+      end
+
       def inspect
         "#<#{self.class} algorithm=#{@algorithm} private=#{private?}>"
       end
