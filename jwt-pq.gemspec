@@ -35,4 +35,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "jwt", ">= 3.0"
   spec.add_dependency "ffi", "~> 1.15"
+  spec.add_dependency "pqc_asn1", "~> 0.1"
 end
