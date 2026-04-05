@@ -21,19 +21,20 @@ Gem::Specification.new do |spec|
     "source_code_uri" => spec.homepage,
     "changelog_uri" => "#{spec.homepage}/blob/main/CHANGELOG.md",
     "bug_tracker_uri" => "#{spec.homepage}/issues",
-    "optional_dependencies" => "jwt-eddsa (for hybrid EdDSA+ML-DSA mode)"
+    "optional_dependencies" => "jwt-eddsa (for hybrid EdDSA+ML-DSA mode)",
+    "rubygems_mfa_required" => "true"
   }
 
   spec.files = Dir.chdir(__dir__) do
     `git ls-files -z`.split("\x0").reject do |f|
       f.start_with?("spec/", "vendor/", ".github/") ||
-        f.match?(%r{\A(?:\.git|jwt-pq-plan)})
+        f.match?(/\A(?:\.git|jwt-pq-plan)/)
     end
   end
 
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "jwt", ">= 3.0"
   spec.add_dependency "ffi", "~> 1.15"
+  spec.add_dependency "jwt", ">= 3.0"
   spec.add_dependency "pqc_asn1", "~> 0.1"
 end

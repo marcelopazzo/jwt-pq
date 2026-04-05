@@ -66,23 +66,12 @@ module JWT
       # Import a Key from a PEM string (SPKI or PKCS#8).
       def self.from_pem(pem_string)
         info = PqcAsn1::DER.parse_pem(pem_string)
-        alg_name = OID_TO_ALGORITHM[info.oid]
-        raise KeyError, "Unknown OID in PEM: #{info.oid.dotted}" unless alg_name
+        alg_name = resolve_oid!(info.oid)
 
         case info.format
-        when :spki
-          new(algorithm: alg_name, public_key: info.key)
-        when :pkcs8
-          if info.public_key
-            sk_bytes = extract_secure_bytes(info.key)
-            new(algorithm: alg_name, public_key: info.public_key, private_key: sk_bytes)
-          else
-            raise KeyError,
-                  "PKCS#8 PEM for #{alg_name} does not include the public key. " \
-                  "Use from_pem_pair to load both public and private PEM."
-          end
-        else
-          raise KeyError, "Unsupported PEM format: #{info.format}"
+        when :spki  then new(algorithm: alg_name, public_key: info.key)
+        when :pkcs8 then build_from_pkcs8(info, alg_name)
+        else raise KeyError, "Unsupported PEM format: #{info.format}"
         end
       ensure
         info&.key&.wipe! if info&.format == :pkcs8
@@ -133,7 +122,19 @@ module JWT
       def self.extract_secure_bytes(secure_buffer)
         secure_buffer.use { |bytes| bytes.bytes.pack("C*") }
       end
-      private_class_method :extract_secure_bytes
+
+      def self.resolve_oid!(oid)
+        OID_TO_ALGORITHM[oid] || raise(KeyError, "Unknown OID in PEM: #{oid.dotted}")
+      end
+
+      def self.build_from_pkcs8(info, alg_name)
+        raise KeyError, "PKCS#8 PEM for #{alg_name} missing public key. Use from_pem_pair." unless info.public_key
+
+        sk_bytes = extract_secure_bytes(info.key)
+        new(algorithm: alg_name, public_key: info.public_key, private_key: sk_bytes)
+      end
+
+      private_class_method :extract_secure_bytes, :resolve_oid!, :build_from_pkcs8
 
       private
 

@@ -76,8 +76,8 @@ RSpec.describe JWT::PQ::MlDsa do
 
       describe "#sign and #verify with binary data" do
         it "handles binary message content" do
-          _, sk = ml_dsa.keypair
-          pk = ml_dsa.keypair[0] # different key to ensure independence
+          ml_dsa.keypair
+          ml_dsa.keypair[0] # different key to ensure independence
           pk, sk = ml_dsa.keypair
 
           binary_msg = (0..255).map(&:chr).join

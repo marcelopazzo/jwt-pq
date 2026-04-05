@@ -18,7 +18,7 @@ module JWT
         unless ALGORITHMS.key?(algorithm)
           raise UnsupportedAlgorithmError,
                 "Unsupported algorithm: #{algorithm}. " \
-                "Supported: #{ALGORITHMS.keys.join(', ')}"
+                "Supported: #{ALGORITHMS.keys.join(", ")}"
         end
 
         @algorithm = algorithm
@@ -57,7 +57,7 @@ module JWT
         sk_buf.put_bytes(0, secret_key)
 
         status = LibOQS.OQS_SIG_sign(sig, sig_buf, sig_len,
-                                       msg_buf, message.bytesize, sk_buf)
+                                     msg_buf, message.bytesize, sk_buf)
         raise SignatureError, "Signing failed for #{@algorithm}" unless status == LibOQS::OQS_SUCCESS
 
         actual_len = sig_len.read(:size_t)
@@ -81,7 +81,7 @@ module JWT
         pk_buf.put_bytes(0, public_key)
 
         status = LibOQS.OQS_SIG_verify(sig, msg_buf, message.bytesize,
-                                         sig_buf, signature.bytesize, pk_buf)
+                                       sig_buf, signature.bytesize, pk_buf)
         status == LibOQS::OQS_SUCCESS
       ensure
         LibOQS.OQS_SIG_free(sig) if sig && !sig.null?

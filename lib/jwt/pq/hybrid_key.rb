@@ -51,18 +51,19 @@ module JWT
         "EdDSA+#{@ml_dsa_key.algorithm}"
       end
 
-      private
-
-      def require_eddsa_dependency!
-        self.class.require_eddsa_dependency!
-      end
-
       def self.require_eddsa_dependency!
         require "ed25519"
       rescue LoadError
         raise MissingDependencyError,
               "The 'jwt-eddsa' gem (or 'ed25519' gem) is required for hybrid " \
               "EdDSA+ML-DSA mode. Add it to your Gemfile: gem 'jwt-eddsa'"
+      end
+      private_class_method :require_eddsa_dependency!
+
+      private
+
+      def require_eddsa_dependency!
+        self.class.send(:require_eddsa_dependency!)
       end
     end
   end

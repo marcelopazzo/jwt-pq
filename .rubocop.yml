@@ -1,0 +1,66 @@
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - vendor/**/*
+
+Metrics/AbcSize:
+  Max: 25
+
+Metrics/MethodLength:
+  Max: 18
+
+Metrics/BlockLength:
+  Exclude:
+    - spec/**/*_spec.rb
+    - "*.gemspec"
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Layout/LineLength:
+  Enabled: false
+
+Gemspec/DevelopmentDependencies:
+  EnforcedStyle: gemspec
+
+Metrics/ClassLength:
+  Max: 120
+
+Naming/PredicateMethod:
+  Enabled: false
+
+# ML-DSA algorithm names contain numbers (ML-DSA-44, ML-DSA-65, ML-DSA-87)
+Naming/VariableNumber:
+  AllowedIdentifiers:
+    - ml_dsa_44
+    - ml_dsa_65
+    - ml_dsa_87
+
+Style/Documentation:
+  Enabled: false
+
+plugins:
+  - rubocop-rspec
+
+RSpec/DescribeClass:
+  Enabled: false
+
+RSpec/SpecFilePathFormat:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/ExampleLength:
+  Enabled: false
+
+RSpec/NestedGroups:
+  Max: 5
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false

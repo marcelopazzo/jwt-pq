@@ -4,9 +4,8 @@ require "ed25519"
 
 RSpec.describe JWT::PQ::Algorithms::HybridEdDsa do
   %w[ML-DSA-44 ML-DSA-65 ML-DSA-87].each do |ml_alg|
-    hybrid_alg = "EdDSA+#{ml_alg}"
-
-    context "with #{hybrid_alg}" do
+    context "with EdDSA+#{ml_alg}" do
+      let(:hybrid_alg) { "EdDSA+#{ml_alg}" }
       let(:key) { JWT::PQ::HybridKey.generate(ml_alg.downcase.tr("-", "_").to_sym) }
       let(:payload) { { "sub" => "42", "name" => "PQ User", "iat" => 1_700_000_000 } }
 

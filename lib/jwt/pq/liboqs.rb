@@ -38,19 +38,19 @@ module JWT
       attach_function :OQS_SIG_free, [:pointer], :void
 
       # OQS_STATUS OQS_SIG_keypair(const OQS_SIG *sig, uint8_t *public_key, uint8_t *secret_key)
-      attach_function :OQS_SIG_keypair, [:pointer, :pointer, :pointer], :int
+      attach_function :OQS_SIG_keypair, %i[pointer pointer pointer], :int
 
       # OQS_STATUS OQS_SIG_sign(const OQS_SIG *sig, uint8_t *signature, size_t *signature_len,
       #                          const uint8_t *message, size_t message_len,
       #                          const uint8_t *secret_key)
-      attach_function :OQS_SIG_sign, [:pointer, :pointer, :pointer,
-                                       :pointer, :size_t, :pointer], :int
+      attach_function :OQS_SIG_sign, %i[pointer pointer pointer
+                                        pointer size_t pointer], :int
 
       # OQS_STATUS OQS_SIG_verify(const OQS_SIG *sig, const uint8_t *message,
       #                            size_t message_len, const uint8_t *signature,
       #                            size_t signature_len, const uint8_t *public_key)
-      attach_function :OQS_SIG_verify, [:pointer, :pointer, :size_t,
-                                         :pointer, :size_t, :pointer], :int
+      attach_function :OQS_SIG_verify, %i[pointer pointer size_t
+                                          pointer size_t pointer], :int
     end
   end
 end
