@@ -39,6 +39,7 @@ module JWT
 
         [pk.read_bytes(@sizes[:public_key]), sk.read_bytes(@sizes[:secret_key])]
       ensure
+        sk&.clear
         LibOQS.OQS_SIG_free(sig) if sig && !sig.null?
       end
 
@@ -63,6 +64,7 @@ module JWT
         actual_len = sig_len.read(:size_t)
         sig_buf.read_bytes(actual_len)
       ensure
+        sk_buf&.clear
         LibOQS.OQS_SIG_free(sig) if sig && !sig.null?
       end
 
