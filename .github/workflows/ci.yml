@@ -16,7 +16,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install liboqs (Ubuntu)
         if: runner.os == 'Linux'
@@ -38,13 +38,19 @@ jobs:
           cmake -GNinja -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr/local ..
           ninja && sudo ninja install
 
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
 
       - name: Run tests
         run: bundle exec rspec
+
+      - name: Upload coverage to Codecov
+        if: matrix.ruby == '3.4' && matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Run RuboCop
         run: bundle exec rubocop

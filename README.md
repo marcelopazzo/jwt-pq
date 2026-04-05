@@ -1,5 +1,9 @@
 # jwt-pq
 
+[![Gem Version](https://badge.fury.io/rb/jwt-pq.svg)](https://rubygems.org/gems/jwt-pq)
+[![CI](https://github.com/marcelopazzo/jwt-pq/actions/workflows/ci.yml/badge.svg)](https://github.com/marcelopazzo/jwt-pq/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/marcelopazzo/jwt-pq/graph/badge.svg)](https://codecov.io/gh/marcelopazzo/jwt-pq)
+
 Post-quantum JWT signatures for Ruby. Adds **ML-DSA** (FIPS 204) support to the [ruby-jwt](https://github.com/jwt/ruby-jwt) ecosystem, with an optional **hybrid EdDSA + ML-DSA** mode.
 
 ## Features
