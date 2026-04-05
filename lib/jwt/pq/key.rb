@@ -149,12 +149,12 @@ module JWT
         new(algorithm: alg_name, public_key: info.public_key, private_key: sk_bytes)
       end
 
-      private_class_method :extract_secure_bytes, :resolve_oid!, :build_from_pkcs8
+      private_class_method :resolve_algorithm, :extract_secure_bytes, :resolve_oid!, :build_from_pkcs8
 
       private
 
       def resolve_algorithm(algorithm)
-        self.class.resolve_algorithm(algorithm)
+        self.class.send(:resolve_algorithm, algorithm)
       end
 
       def validate!

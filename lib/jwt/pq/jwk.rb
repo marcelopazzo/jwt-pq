@@ -13,7 +13,7 @@ module JWT
     #   pub: base64url-encoded public key
     #   priv: base64url-encoded private key (optional)
     class JWK
-      ALGORITHMS = %w[ML-DSA-44 ML-DSA-65 ML-DSA-87].freeze
+      ALGORITHMS = MlDsa::ALGORITHMS.keys.freeze
       KTY = "AKP"
 
       attr_reader :key
@@ -44,10 +44,12 @@ module JWT
 
         validate_kty!(jwk)
         alg = validate_alg!(jwk)
-        pub_bytes = base64url_decode(jwk["pub"])
+        raise KeyError, "Missing 'pub' in JWK" unless jwk.key?("pub")
+
+        pub_bytes = decode_field(jwk, "pub")
 
         if jwk.key?("priv")
-          priv_bytes = base64url_decode(jwk["priv"])
+          priv_bytes = decode_field(jwk, "priv")
           Key.new(algorithm: alg, public_key: pub_bytes, private_key: priv_bytes)
         else
           Key.new(algorithm: alg, public_key: pub_bytes)
@@ -83,10 +85,12 @@ module JWT
       end
       private_class_method :normalize_keys
 
-      def self.base64url_decode(str)
-        ::Base64.urlsafe_decode64(str)
+      def self.decode_field(jwk, field)
+        ::Base64.urlsafe_decode64(jwk[field])
+      rescue ArgumentError => e
+        raise KeyError, "Invalid base64url in JWK '#{field}': #{e.message}"
       end
-      private_class_method :base64url_decode
+      private_class_method :decode_field
 
       private
 

@@ -123,5 +123,23 @@ RSpec.describe JWT::PQ::JWK do
       expect { described_class.new("not a key") }
         .to raise_error(JWT::PQ::KeyError, /JWT::PQ::Key/)
     end
+
+    it "raises for missing pub field" do
+      expect { described_class.import({ "kty" => "AKP", "alg" => "ML-DSA-44" }) }
+        .to raise_error(JWT::PQ::KeyError, /pub/)
+    end
+
+    it "raises for invalid base64url in pub" do
+      expect { described_class.import({ "kty" => "AKP", "alg" => "ML-DSA-44", "pub" => "!!!invalid!!!" }) }
+        .to raise_error(JWT::PQ::KeyError, /base64url.*pub/i)
+    end
+
+    it "raises for invalid base64url in priv" do
+      key = JWT::PQ::Key.generate(:ml_dsa_44)
+      jwk = described_class.new(key).export
+      jwk[:priv] = "!!!invalid!!!"
+      expect { described_class.import(jwk) }
+        .to raise_error(JWT::PQ::KeyError, /base64url.*priv/i)
+    end
   end
 end
