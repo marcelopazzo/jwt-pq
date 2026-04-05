@@ -12,4 +12,5 @@ end
 
 group :test do
   gem "simplecov", require: false
+  gem "jwt-eddsa", "~> 0.9"
 end
