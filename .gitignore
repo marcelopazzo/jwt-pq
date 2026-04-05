@@ -1,6 +1,7 @@
 /.bundle/
 /vendor/bundle
 /vendor/liboqs/
+/lib/jwt/pq/vendor/
 /tmp/
 /pkg/
 *.gem

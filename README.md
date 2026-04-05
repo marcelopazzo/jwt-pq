@@ -17,27 +17,7 @@ Post-quantum JWT signatures for Ruby. Adds **ML-DSA** (FIPS 204) support to the 
 ## Requirements
 
 - Ruby >= 3.2
-- [liboqs](https://github.com/open-quantum-safe/liboqs) (shared library)
-
-### Installing liboqs
-
-```bash
-# macOS
-brew install cmake ninja
-git clone --depth 1 https://github.com/open-quantum-safe/liboqs
-cd liboqs && mkdir build && cd build
-cmake -GNinja -DBUILD_SHARED_LIBS=ON ..
-ninja && sudo ninja install
-
-# Ubuntu / Debian
-sudo apt-get install cmake ninja-build
-git clone --depth 1 https://github.com/open-quantum-safe/liboqs
-cd liboqs && mkdir build && cd build
-cmake -GNinja -DBUILD_SHARED_LIBS=ON ..
-ninja && sudo ninja install && sudo ldconfig
-```
-
-You can also set the `OQS_LIB` environment variable to point to a custom `liboqs.so` / `liboqs.dylib` path.
+- CMake >= 3.15 and a C compiler — gcc or clang (for building the bundled liboqs)
 
 ## Installation
 
@@ -48,6 +28,22 @@ gem "jwt-pq"
 # For hybrid EdDSA + ML-DSA mode (optional):
 gem "jwt-eddsa"
 ```
+
+liboqs is automatically compiled from source during gem installation (ML-DSA algorithms only, ~30 seconds).
+
+### Using system liboqs
+
+If you prefer to use a system-installed liboqs:
+
+```bash
+gem install jwt-pq -- --use-system-libraries
+# or
+JWT_PQ_USE_SYSTEM_LIBRARIES=1 gem install jwt-pq
+# or in Bundler
+bundle config build.jwt-pq --use-system-libraries
+```
+
+You can also point to a specific library with `OQS_LIB=/path/to/liboqs.dylib`.
 
 ## Usage
 
@@ -137,9 +133,10 @@ The `alg` header values follow a `ClassicAlg+PQAlg` convention. The IETF draft `
 ## Development
 
 ```bash
-bundle install
-OQS_LIB=/path/to/liboqs.dylib bundle exec rspec
-bundle exec rubocop
+bundle install          # compiles liboqs automatically
+bundle exec rspec       # run tests
+bundle exec rubocop     # lint
+rake compile            # recompile liboqs manually
 ```
 
 ## License

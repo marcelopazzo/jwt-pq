@@ -18,25 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Install liboqs (Ubuntu)
+      - name: Install build dependencies (Ubuntu)
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
-          git clone --depth 1 --branch 0.15.0 https://github.com/open-quantum-safe/liboqs
-          cd liboqs && mkdir build && cd build
-          cmake -GNinja -DBUILD_SHARED_LIBS=ON ..
-          ninja && sudo ninja install
-          sudo ldconfig
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
 
-      - name: Install liboqs (macOS)
+      - name: Install build dependencies (macOS)
         if: runner.os == 'macOS'
-        run: |
-          brew install cmake ninja
-          git clone --depth 1 --branch 0.15.0 https://github.com/open-quantum-safe/liboqs
-          cd liboqs && mkdir build && cd build
-          cmake -GNinja -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr/local ..
-          ninja && sudo ninja install
+        run: brew install cmake ninja
 
       - uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
         with:
@@ -54,5 +42,28 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Run RuboCop
-        run: bundle exec rubocop
         if: matrix.ruby == '3.4' && matrix.os == 'ubuntu-latest'
+        run: bundle exec rubocop
+
+  test-system-libraries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install liboqs system-wide
+        run: |
+          sudo apt-get update && sudo apt-get install -y cmake ninja-build
+          git clone --depth 1 --branch 0.15.0 https://github.com/open-quantum-safe/liboqs
+          cd liboqs && mkdir build && cd build
+          cmake -GNinja -DBUILD_SHARED_LIBS=ON ..
+          ninja && sudo ninja install && sudo ldconfig
+
+      - uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+        env:
+          JWT_PQ_USE_SYSTEM_LIBRARIES: "1"
+
+      - name: Run tests
+        run: bundle exec rspec

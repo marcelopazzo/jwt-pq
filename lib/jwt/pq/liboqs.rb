@@ -6,29 +6,46 @@ module JWT
   module PQ
     # FFI bindings for liboqs signature operations.
     #
-    # The library search order:
+    # Library search order:
     #   1. OQS_LIB environment variable (explicit path)
-    #   2. System-installed liboqs (via standard library search)
+    #   2. Vendored liboqs (compiled during gem install)
+    #   3. System-installed liboqs (via standard library search)
     module LibOQS
       extend FFI::Library
 
       OQS_SUCCESS = 0
       OQS_ERROR = -1
 
-      # Determine library path
       def self.lib_path
+        # 1. Explicit path from environment
         return ENV["OQS_LIB"] if ENV["OQS_LIB"]
 
+        # 2. Vendored library (compiled during gem install)
+        vendored = vendored_lib_path
+        return vendored if vendored
+
+        # 3. System library
         "oqs"
       end
+
+      def self.vendored_lib_path
+        %w[dylib so].each do |ext|
+          path = File.join(__dir__, "vendor", "lib", "liboqs.#{ext}")
+          return path if File.exist?(path)
+        end
+        nil
+      end
+      private_class_method :vendored_lib_path
 
       begin
         ffi_lib lib_path
       rescue LoadError => e
         raise JWT::PQ::LiboqsError,
-              "liboqs not found. Install it via: brew install liboqs (macOS) or " \
-              "apt install liboqs-dev (Ubuntu). You can also set OQS_LIB to the " \
-              "full path of the shared library. Original error: #{e.message}"
+              "liboqs not found. The vendored library may not have been compiled " \
+              "during gem install. Ensure cmake and a C compiler are installed, " \
+              "then reinstall: gem install jwt-pq. Alternatively, install liboqs " \
+              "manually and set OQS_LIB to the full path. " \
+              "Original error: #{e.message}"
       end
 
       # OQS_SIG *OQS_SIG_new(const char *method_name)

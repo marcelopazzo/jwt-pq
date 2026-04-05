@@ -24,12 +24,14 @@ Gem::Specification.new do |spec|
     "rubygems_mfa_required" => "true"
   }
 
-  spec.requirements = ["liboqs >= 0.15.0 (shared library) — https://github.com/open-quantum-safe/liboqs"]
+  spec.requirements = ["cmake >= 3.15", "C compiler (gcc or clang)"]
 
   spec.post_install_message = <<~MSG
-    jwt-pq requires liboqs (shared library) to be installed on your system.
-    See https://github.com/marcelopazzo/jwt-pq#installing-liboqs for instructions.
-    For hybrid EdDSA+ML-DSA mode, also add 'jwt-eddsa' to your Gemfile.
+    jwt-pq compiles liboqs from source during installation.
+    If the build failed, ensure cmake and a C compiler are installed.
+    To use a system-installed liboqs instead:
+      gem install jwt-pq -- --use-system-libraries
+    For hybrid EdDSA+ML-DSA mode, add 'jwt-eddsa' to your Gemfile.
   MSG
 
   spec.files = Dir.chdir(__dir__) do
@@ -39,6 +41,7 @@ Gem::Specification.new do |spec|
     end
   end
 
+  spec.extensions = ["ext/jwt/pq/extconf.rb"]
   spec.require_paths = ["lib"]
 
   spec.add_dependency "ffi", "~> 1.15"

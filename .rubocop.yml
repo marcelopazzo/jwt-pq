@@ -4,6 +4,7 @@ AllCops:
   SuggestExtensions: false
   Exclude:
     - vendor/**/*
+    - ext/**/*
 
 Metrics/AbcSize:
   Max: 25
