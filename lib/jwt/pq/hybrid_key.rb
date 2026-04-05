@@ -51,6 +51,11 @@ module JWT
         "EdDSA+#{@ml_dsa_key.algorithm}"
       end
 
+      def inspect
+        "#<#{self.class} algorithm=#{hybrid_algorithm} private=#{private?}>"
+      end
+      alias to_s inspect
+
       def self.require_eddsa_dependency!
         require "ed25519"
       rescue LoadError

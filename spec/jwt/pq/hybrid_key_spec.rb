@@ -50,4 +50,19 @@ RSpec.describe JWT::PQ::HybridKey do
         .to raise_error(JWT::PQ::KeyError, /Ed25519/)
     end
   end
+
+  describe "#inspect" do
+    let(:key) { described_class.generate(:ml_dsa_44) }
+
+    it "does not expose key material" do
+      output = key.inspect
+      expect(output).to include("EdDSA+ML-DSA-44")
+      expect(output).to include("private=true")
+      expect(output).not_to include(key.ml_dsa_key.private_key)
+    end
+
+    it "is used by to_s" do
+      expect(key.to_s).to eq(key.inspect)
+    end
+  end
 end

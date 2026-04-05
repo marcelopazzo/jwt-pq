@@ -63,6 +63,11 @@ module JWT
         !@private_key.nil?
       end
 
+      def inspect
+        "#<#{self.class} algorithm=#{@algorithm} private=#{private?}>"
+      end
+      alias to_s inspect
+
       # Import a Key from a PEM string (SPKI or PKCS#8).
       def self.from_pem(pem_string)
         info = PqcAsn1::DER.parse_pem(pem_string)

@@ -79,4 +79,24 @@ RSpec.describe JWT::PQ::Key do
       end.to raise_error(JWT::PQ::KeyError, /private key size/)
     end
   end
+
+  describe "#inspect" do
+    let(:key) { described_class.generate(:ml_dsa_44) }
+
+    it "does not expose private key material" do
+      output = key.inspect
+      expect(output).to include("ML-DSA-44")
+      expect(output).to include("private=true")
+      expect(output).not_to include(key.private_key)
+    end
+
+    it "works for public-only keys" do
+      pub_key = described_class.from_public_key(:ml_dsa_44, key.public_key)
+      expect(pub_key.inspect).to include("private=false")
+    end
+
+    it "is used by to_s" do
+      expect(key.to_s).to eq(key.inspect)
+    end
+  end
 end
