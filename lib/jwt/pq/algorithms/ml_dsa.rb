@@ -15,13 +15,12 @@ module JWT
         end
 
         def sign(data:, signing_key:)
-          key = resolve_key(signing_key)
-          raise_sign_error!("Private key required for signing") unless key.private?
+          key = resolve_signing_key(signing_key)
           key.sign(data)
         end
 
         def verify(data:, signature:, verification_key:)
-          key = resolve_key(verification_key)
+          key = resolve_verification_key(verification_key)
           key.verify(data, signature)
         rescue JWT::PQ::Error
           false
@@ -29,12 +28,25 @@ module JWT
 
         private
 
-        def resolve_key(key)
+        def resolve_signing_key(key)
+          case key
+          when JWT::PQ::Key
+            raise_sign_error!("Private key required for signing") unless key.private?
+            key
+          else
+            raise_sign_error!(
+              "Expected a JWT::PQ::Key, got #{key.class}. " \
+              "Use JWT::PQ::Key.generate(:#{alg_symbol}) to create a key."
+            )
+          end
+        end
+
+        def resolve_verification_key(key)
           case key
           when JWT::PQ::Key
             key
           else
-            raise_sign_error!(
+            raise_verify_error!(
               "Expected a JWT::PQ::Key, got #{key.class}. " \
               "Use JWT::PQ::Key.generate(:#{alg_symbol}) to create a key."
             )

@@ -44,6 +44,28 @@ RSpec.describe JWT::PQ::Algorithms::MlDsa do
           end.to raise_error(JWT::VerificationError)
         end
       end
+
+      describe "error handling" do
+        it "raises EncodeError when signing with a non-Key object" do
+          expect do
+            JWT.encode(payload, "not a key", alg_name)
+          end.to raise_error(JWT::EncodeError, /JWT::PQ::Key/)
+        end
+
+        it "raises EncodeError when signing with a public-only key" do
+          pub_key = JWT::PQ::Key.from_public_key(alg_name, key.public_key)
+          expect do
+            JWT.encode(payload, pub_key, alg_name)
+          end.to raise_error(JWT::EncodeError, /Private key/)
+        end
+
+        it "raises DecodeError when verifying with a non-Key object" do
+          token = JWT.encode(payload, key, alg_name)
+          expect do
+            JWT.decode(token, "not a key", true, algorithms: [alg_name])
+          end.to raise_error(JWT::DecodeError)
+        end
+      end
     end
   end
 end

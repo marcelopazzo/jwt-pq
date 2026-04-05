@@ -74,6 +74,12 @@ RSpec.describe JWT::PQ::MlDsa do
         end
       end
 
+      describe "#signature_size" do
+        it "returns the maximum signature size" do
+          expect(ml_dsa.signature_size).to eq(sizes[:signature])
+        end
+      end
+
       describe "#sign and #verify with binary data" do
         it "handles binary message content" do
           ml_dsa.keypair

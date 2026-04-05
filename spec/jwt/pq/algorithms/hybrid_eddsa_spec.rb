@@ -109,6 +109,25 @@ RSpec.describe JWT::PQ::Algorithms::HybridEdDsa do
             JWT.encode(payload, "not a key", hybrid_alg)
           end.to raise_error(JWT::EncodeError, /HybridKey/)
         end
+
+        it "raises when verifying with a non-HybridKey" do
+          token = JWT.encode(payload, key, hybrid_alg)
+          expect do
+            JWT.decode(token, "not a key", true, algorithms: [hybrid_alg])
+          end.to raise_error(JWT::DecodeError, /HybridKey/)
+        end
+
+        it "rejects a signature that is too short" do
+          token = JWT.encode(payload, key, hybrid_alg)
+          parts = token.split(".")
+          # Replace signature with something <= 64 bytes
+          parts[2] = Base64.urlsafe_encode64("x" * 64, padding: false)
+          short_token = parts.join(".")
+
+          expect do
+            JWT.decode(short_token, key, true, algorithms: [hybrid_alg])
+          end.to raise_error(JWT::VerificationError)
+        end
       end
     end
   end

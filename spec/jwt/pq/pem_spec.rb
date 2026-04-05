@@ -67,6 +67,18 @@ RSpec.describe "PEM serialization" do
         end
       end
 
+      describe ".from_pem with PKCS#8" do
+        it "imports a PKCS#8 PEM with embedded public key" do
+          priv_pem = key.private_to_pem
+          restored = JWT::PQ::Key.from_pem(priv_pem)
+
+          expect(restored.algorithm).to eq(alg_name)
+          expect(restored.public_key).to eq(key.public_key)
+          expect(restored.private_key).to eq(key.private_key)
+          expect(restored).to be_private
+        end
+      end
+
       describe "JWT round-trip with PEM-restored keys" do
         let(:payload) { { "sub" => "42", "data" => "post-quantum" } }
 
@@ -89,6 +101,39 @@ RSpec.describe "PEM serialization" do
           expect(decoded.first).to eq(payload)
         end
       end
+    end
+  end
+
+  describe "error handling" do
+    it "raises for PEM with unknown OID" do
+      # Build a PEM with SLH-DSA OID (not supported by jwt-pq)
+      fake_key = "\x00" * 32
+      der = PqcAsn1::DER.build_spki(PqcAsn1::OID::SLH_DSA_SHA2_128F, fake_key, validate: false)
+      pem = PqcAsn1::PEM.encode(der, "PUBLIC KEY")
+
+      expect { JWT::PQ::Key.from_pem(pem) }.to raise_error(JWT::PQ::KeyError, /Unknown OID/)
+    end
+
+    it "raises for from_pem_pair with unknown public OID" do
+      ml_key = JWT::PQ::Key.generate(:ml_dsa_44)
+      fake_pub = "\x00" * 32
+      der = PqcAsn1::DER.build_spki(PqcAsn1::OID::SLH_DSA_SHA2_128F, fake_pub, validate: false)
+      bad_pub_pem = PqcAsn1::PEM.encode(der, "PUBLIC KEY")
+
+      expect do
+        JWT::PQ::Key.from_pem_pair(public_pem: bad_pub_pem, private_pem: ml_key.private_to_pem)
+      end.to raise_error(JWT::PQ::KeyError, /Unknown OID/)
+    end
+
+    it "raises for from_pem_pair with unknown private OID" do
+      ml_key = JWT::PQ::Key.generate(:ml_dsa_44)
+      fake_sk = "\x00" * 64
+      der = PqcAsn1::DER.build_pkcs8(PqcAsn1::OID::SLH_DSA_SHA2_128F, fake_sk, validate: false)
+      bad_priv_pem = der.to_pem
+
+      expect do
+        JWT::PQ::Key.from_pem_pair(public_pem: ml_key.to_pem, private_pem: bad_priv_pem)
+      end.to raise_error(JWT::PQ::KeyError, /Unknown OID/)
     end
   end
 end
