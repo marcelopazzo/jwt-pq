@@ -112,6 +112,7 @@ def build_liboqs(source_dir)
     2
   end
 
+  # Semicolons are cmake list separators (safe here — system() uses execvp, no shell)
   cmake_args = %W[
     -DBUILD_SHARED_LIBS=ON
     -DOQS_MINIMAL_BUILD=SIG_ml_dsa_44;SIG_ml_dsa_65;SIG_ml_dsa_87
