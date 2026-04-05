@@ -50,6 +50,7 @@ jobs:
         if: matrix.ruby == '3.4' && matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
         with:
+          files: coverage/coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Run RuboCop
