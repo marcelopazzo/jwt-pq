@@ -65,4 +65,31 @@ RSpec.describe JWT::PQ::HybridKey do
       expect(key.to_s).to eq(key.inspect)
     end
   end
+
+  describe "#destroy!" do
+    let(:key) { described_class.generate(:ml_dsa_44) }
+
+    it "zeros both key components" do
+      expect(key).to be_private
+      key.destroy!
+      expect(key).not_to be_private
+      expect(key.ed25519_signing_key).to be_nil
+      expect(key.ml_dsa_key).not_to be_private
+    end
+
+    it "prevents signing after destroy" do
+      key.destroy!
+      expect do
+        JWT.encode({ "sub" => "1" }, key, "EdDSA+ML-DSA-44")
+      end.to raise_error(JWT::EncodeError)
+    end
+
+    it "is safe to call on a verify-only key" do
+      verify_key = described_class.new(
+        ed25519: key.ed25519_verify_key,
+        ml_dsa: JWT::PQ::Key.from_public_key(:ml_dsa_44, key.ml_dsa_key.public_key)
+      )
+      expect(verify_key.destroy!).to be true
+    end
+  end
 end

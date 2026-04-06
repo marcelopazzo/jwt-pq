@@ -51,6 +51,18 @@ module JWT
         "EdDSA+#{@ml_dsa_key.algorithm}"
       end
 
+      # Zero and discard private key material from both key components.
+      # After calling this, the key can only be used for verification.
+      def destroy!
+        @ml_dsa_key.destroy!
+        if @ed25519_signing_key
+          seed = @ed25519_signing_key.to_bytes
+          seed.replace("\0" * seed.bytesize)
+          @ed25519_signing_key = nil
+        end
+        true
+      end
+
       def inspect
         "#<#{self.class} algorithm=#{hybrid_algorithm} private=#{private?}>"
       end
