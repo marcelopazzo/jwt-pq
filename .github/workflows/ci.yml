@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 0 * * 5"
 
 permissions:
   contents: read
@@ -73,3 +75,25 @@ jobs:
 
       - name: Run tests
         run: bundle exec rspec
+
+  smoke:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
+
+      - uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
+        with:
+          ruby-version: "3.4"
+
+      - name: Build gem
+        run: gem build jwt-pq.gemspec
+
+      - name: Install built gem
+        run: gem install jwt-pq-*.gem
+
+      - name: Run smoke test
+        run: ruby bin/smoke.rb
