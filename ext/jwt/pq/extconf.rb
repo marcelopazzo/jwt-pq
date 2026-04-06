@@ -2,7 +2,8 @@
 
 require "mkmf"
 require "fileutils"
-require "open-uri"
+require "net/http"
+require "uri"
 require "digest"
 require "rubygems/package"
 require "zlib"
@@ -49,6 +50,22 @@ def check_cmake!
   cmake
 end
 
+def download_via_http(url, dest_path, redirect_limit = 5)
+  abort "ERROR: too many redirects downloading liboqs" if redirect_limit.zero?
+
+  uri = URI.parse(url)
+  response = Net::HTTP.get_response(uri)
+
+  case response
+  when Net::HTTPSuccess
+    File.binwrite(dest_path, response.body)
+  when Net::HTTPRedirection
+    download_via_http(response["location"], dest_path, redirect_limit - 1)
+  else
+    abort "ERROR: failed to download liboqs (HTTP #{response.code}): #{uri}"
+  end
+end
+
 def download_source(dest_dir)
   tarball_path = File.join(dest_dir, "liboqs-#{LIBOQS_VERSION}.tar.gz")
 
@@ -57,9 +74,7 @@ def download_source(dest_dir)
 
   $stdout.puts "jwt-pq: downloading liboqs #{LIBOQS_VERSION}..."
   if source.start_with?("http")
-    URI.open(source) do |remote| # rubocop:disable Security/Open
-      File.binwrite(tarball_path, remote.read)
-    end
+    download_via_http(source, tarball_path)
   else
     FileUtils.cp(source, tarball_path)
   end
