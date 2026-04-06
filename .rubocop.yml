@@ -27,7 +27,7 @@ Layout/LineLength:
   Enabled: false
 
 Gemspec/DevelopmentDependencies:
-  EnforcedStyle: gemspec
+  EnforcedStyle: Gemfile
 
 Metrics/ClassLength:
   Max: 120
