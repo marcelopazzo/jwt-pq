@@ -31,7 +31,7 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install cmake ninja
 
-      - uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
+      - uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # v1.301.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
@@ -66,7 +66,7 @@ jobs:
           cmake -GNinja -DBUILD_SHARED_LIBS=ON ..
           ninja && sudo ninja install && sudo ldconfig
 
-      - uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
+      - uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # v1.301.0
         with:
           ruby-version: "3.4"
           bundler-cache: true
@@ -85,7 +85,7 @@ jobs:
       - name: Install build dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
 
-      - uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
+      - uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # v1.301.0
         with:
           ruby-version: "3.4"
 
