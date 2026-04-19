@@ -36,7 +36,7 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir.chdir(__dir__) do
     `git ls-files -z`.split("\x0").reject do |f|
-      f.start_with?("spec/", "vendor/", ".github/") ||
+      f.start_with?("spec/", "vendor/", ".github/", "bench/") ||
         f.match?(/\A(?:\.git|\.rspec|\.rubocop|jwt-pq-plan)/)
     end
   end
