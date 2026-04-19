@@ -50,7 +50,7 @@ module JWT
       def sign(data)
         raise KeyError, "Private key not available — cannot sign" unless @private_key
 
-        @ml_dsa.sign(data, @private_key)
+        @ml_dsa.sign_with_sk_buffer(data, sk_buffer)
       end
 
       # Verify a signature using the public key.
@@ -69,6 +69,10 @@ module JWT
         if @private_key
           @private_key.replace("\0" * @private_key.bytesize)
           @private_key = nil
+        end
+        if @sk_buffer
+          @sk_buffer.clear
+          @sk_buffer = nil
         end
         true
       end
@@ -152,6 +156,14 @@ module JWT
       private_class_method :resolve_algorithm, :extract_secure_bytes, :resolve_oid!, :build_from_pkcs8
 
       private
+
+      def sk_buffer
+        @sk_buffer ||= begin
+          buf = FFI::MemoryPointer.new(:uint8, @private_key.bytesize)
+          buf.put_bytes(0, @private_key)
+          buf
+        end
+      end
 
       def resolve_algorithm(algorithm)
         self.class.send(:resolve_algorithm, algorithm)
