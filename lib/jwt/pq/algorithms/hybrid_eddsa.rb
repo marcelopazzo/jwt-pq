@@ -42,7 +42,11 @@ module JWT
         end
 
         def verify(data:, signature:, verification_key:)
-          key = resolve_verification_key(verification_key)
+          unless verification_key.is_a?(JWT::PQ::HybridKey)
+            raise_verify_error!(
+              "Expected a JWT::PQ::HybridKey, got #{verification_key.class}."
+            )
+          end
 
           return false if signature.bytesize <= ED25519_SIG_SIZE
 
@@ -50,13 +54,13 @@ module JWT
           ml_sig = signature.byteslice(ED25519_SIG_SIZE..)
 
           ed_valid = begin
-            key.ed25519_verify_key.verify(ed_sig, data)
+            verification_key.ed25519_verify_key.verify(ed_sig, data)
             true
           rescue Ed25519::VerifyError
             false
           end
 
-          ml_valid = key.ml_dsa_key.verify(data, ml_sig)
+          ml_valid = verification_key.ml_dsa_key.verify(data, ml_sig)
 
           ed_valid && ml_valid
         rescue JWT::PQ::Error
