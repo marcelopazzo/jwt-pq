@@ -5,6 +5,7 @@ AllCops:
   Exclude:
     - vendor/**/*
     - ext/**/*
+    - spec/interop/**/*
 
 Metrics/AbcSize:
   Max: 25
