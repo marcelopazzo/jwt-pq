@@ -7,11 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-19
+
 ### Added
 
-- Parameterized bench harnesses (`bench/sign_throughput.rb`, `bench/verify_throughput.rb`) via `ALG` env var — previously hardcoded to `ML-DSA-65`, now supports all three security levels
+- Hybrid-sign throughput benchmark at `bench/hybrid_sign_throughput.rb`
+- Hybrid-verify throughput benchmark at `bench/hybrid_verify_throughput.rb`
+- Parameterized `bench/sign_throughput.rb` and `bench/verify_throughput.rb` via `ALG` env var — previously hardcoded to `ML-DSA-65`, now supports all three security levels
 - PEM key fixtures for ML-DSA-44 and ML-DSA-87 under `bench/fixtures/`
-- `bench/generate_fixtures.rb` to (re)generate fixture keys idempotently
+- `bench/generate_fixtures.rb` to regenerate bench fixtures idempotently
+- Cross-implementation interop CI against `dilithium-py` (independent pure-Python ML-DSA / FIPS 204 implementation) — runs on push, PR, and weekly
+
+### Changed
+
+- **Hybrid EdDSA+ML-DSA-65 sign throughput: +12.1%** (5200 → 5831 sigs/s on Ruby 3.4.6 + liboqs 0.15.0). Inline type-check in `HybridEdDsa#sign` (+1.6%) plus cached frozen header hash and precomputed `ml_dsa_algorithm` at init (+10.4%) — `#header` is called once per `JWT.encode`, so eliminating the per-call Hash allocation and `String#sub` compounds noticeably.
+- **Hybrid EdDSA+ML-DSA-65 verify throughput: +2.3%** (4812 → 4923 verifies/s). Inline type-check in `HybridEdDsa#verify`, mirroring the sign-side pattern.
+- `bench/` directory no longer packaged into the published gem (smaller install footprint).
 
 ### Benchmarks
 
@@ -92,7 +103,8 @@ Throughput on Ruby 3.4.6, macOS x86_64, liboqs 0.15.0 (benchmark-ips, 2s warmup 
   - Optional dependency on jwt-eddsa / ed25519
 - Error classes: `LiboqsError`, `KeyError`, `SignatureError`, `MissingDependencyError`
 
-[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/marcelopazzo/jwt-pq/releases/tag/v0.1.0
