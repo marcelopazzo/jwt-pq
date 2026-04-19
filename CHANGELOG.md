@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-19
+
+### Added
+
+- Sign-throughput benchmark at `bench/sign_throughput.rb` with a fixed PEM key fixture (`bench/fixtures/ml_dsa_65_sk.pem`), driven by `benchmark-ips`
+- Verify-throughput benchmark at `bench/verify_throughput.rb`
+- NIST ACVP sigVer KAT tests at `spec/jwt/pq/kat_spec.rb` — external interface, pure ML-DSA, empty context; covers ML-DSA-44, ML-DSA-65, and ML-DSA-87 with both passing and known-bad signatures as a canonical correctness gate
+- `JWT::PQ::MlDsa#sign_with_sk_buffer` and `#verify_with_pk_buffer` — fast paths that accept pre-populated FFI buffers. The existing bytes-in `#sign` / `#verify` APIs are unchanged
+
+### Changed
+
+- **ML-DSA signing throughput: +2.6%** (from 6676 to 6849 sigs/s on Ruby 3.4.6 + liboqs 0.15.0 for ML-DSA-65). Class-level cache of the `OQS_SIG` handle per algorithm avoids `OQS_SIG_new`/`OQS_SIG_free` per call; per-`Key` memoization of the secret-key FFI buffer avoids a 4032-byte allocation + copy per sign
+- **ML-DSA verification throughput: +19.4%** (from 7995 to 9548 verifies/s on the same setup for ML-DSA-65). Class-level cache of the `OQS_SIG` handle for verify; per-`Key` memoization of the public-key FFI buffer; inlined type-check in the JWA verify entry point. `Key#verify` now reaches 93% of the raw `OQS_SIG_verify` ceiling; remaining overhead lives inside `ruby-jwt`
+- `Key#destroy!` now also zeroes the cached secret-key FFI buffer (`@sk_buffer`) in addition to `@private_key`, preserving the secure-erase contract after the buffer memoization
+
+### Dependencies
+
+- Add `benchmark-ips ~> 2.14` as a development/test dependency (powers the bench harnesses)
+- Bump `ruby/setup-ruby` from 1.299.0 to 1.301.0 (#2)
+
 ## [0.2.0] - 2026-04-06
 
 ### Added
@@ -56,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Optional dependency on jwt-eddsa / ed25519
 - Error classes: `LiboqsError`, `KeyError`, `SignatureError`, `MissingDependencyError`
 
-[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/marcelopazzo/jwt-pq/releases/tag/v0.1.0
