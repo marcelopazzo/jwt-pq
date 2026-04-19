@@ -20,8 +20,13 @@ module JWT
         end
 
         def verify(data:, signature:, verification_key:)
-          key = resolve_verification_key(verification_key)
-          key.verify(data, signature)
+          unless verification_key.is_a?(JWT::PQ::Key)
+            raise_verify_error!(
+              "Expected a JWT::PQ::Key, got #{verification_key.class}. " \
+              "Use JWT::PQ::Key.generate(:#{alg_symbol}) to create a key."
+            )
+          end
+          verification_key.verify(data, signature)
         rescue JWT::PQ::Error
           false
         end
