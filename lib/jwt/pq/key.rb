@@ -55,7 +55,7 @@ module JWT
 
       # Verify a signature using the public key.
       def verify(data, signature)
-        @ml_dsa.verify(data, signature, @public_key)
+        @ml_dsa.verify_with_pk_buffer(data, signature, pk_buffer)
       end
 
       # Whether this key can be used for signing.
@@ -157,6 +157,10 @@ module JWT
 
       def sk_buffer
         @sk_buffer ||= FFI::MemoryPointer.new(:uint8, @private_key.bytesize).put_bytes(0, @private_key)
+      end
+
+      def pk_buffer
+        @pk_buffer ||= FFI::MemoryPointer.new(:uint8, @public_key.bytesize).put_bytes(0, @public_key)
       end
 
       def resolve_algorithm(algorithm)

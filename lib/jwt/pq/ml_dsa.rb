@@ -25,6 +25,20 @@ module JWT
         end
       end
 
+      @verify_handles = {}
+      @verify_handles_mutex = Mutex.new
+
+      def self.verify_handle(algorithm)
+        @verify_handles[algorithm] || @verify_handles_mutex.synchronize do
+          @verify_handles[algorithm] ||= begin
+            h = LibOQS.OQS_SIG_new(algorithm)
+            raise LiboqsError, "Failed to initialize #{algorithm}" if h.null?
+
+            h
+          end
+        end
+      end
+
       attr_reader :algorithm
 
       def initialize(algorithm)
@@ -91,20 +105,24 @@ module JWT
       def verify(message, signature, public_key)
         validate_key_size!(public_key, :public_key)
 
-        sig = LibOQS.OQS_SIG_new(@algorithm)
-        raise LiboqsError, "Failed to initialize #{@algorithm}" if sig.null?
+        pk_buf = FFI::MemoryPointer.new(:uint8, public_key.bytesize)
+        pk_buf.put_bytes(0, public_key)
+        verify_with_pk_buffer(message, signature, pk_buf)
+      end
 
+      # Faster verify path: takes a pre-populated FFI::MemoryPointer holding
+      # the public key. Caller is responsible for buffer lifecycle. Used by
+      # JWT::PQ::Key to avoid re-allocating+copying the public key on every
+      # verify call.
+      def verify_with_pk_buffer(message, signature, pk_buf)
+        sig = self.class.verify_handle(@algorithm)
         msg_buf = FFI::MemoryPointer.from_string(message)
         sig_buf = FFI::MemoryPointer.new(:uint8, signature.bytesize)
         sig_buf.put_bytes(0, signature)
-        pk_buf = FFI::MemoryPointer.new(:uint8, public_key.bytesize)
-        pk_buf.put_bytes(0, public_key)
 
         status = LibOQS.OQS_SIG_verify(sig, msg_buf, message.bytesize,
                                        sig_buf, signature.bytesize, pk_buf)
         status == LibOQS::OQS_SUCCESS
-      ensure
-        LibOQS.OQS_SIG_free(sig) if sig && !sig.null?
       end
 
       # Key sizes for this algorithm
