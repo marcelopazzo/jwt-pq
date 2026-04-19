@@ -19,6 +19,7 @@ module JWT
           @sign_handles[algorithm] ||= begin
             h = LibOQS.OQS_SIG_new(algorithm)
             raise LiboqsError, "Failed to initialize #{algorithm}" if h.null?
+
             h
           end
         end
