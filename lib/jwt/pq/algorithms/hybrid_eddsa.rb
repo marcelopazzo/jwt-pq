@@ -17,17 +17,25 @@ module JWT
 
         def initialize(alg)
           @alg = alg
+          @ml_dsa_algorithm = alg.sub("EdDSA+", "")
+          @header = { "alg" => alg, "pq_alg" => @ml_dsa_algorithm }.freeze
         end
 
         def header(*)
-          { "alg" => alg, "pq_alg" => ml_dsa_algorithm }
+          @header
         end
 
         def sign(data:, signing_key:)
-          key = resolve_signing_key(signing_key)
+          unless signing_key.is_a?(JWT::PQ::HybridKey)
+            raise_sign_error!(
+              "Expected a JWT::PQ::HybridKey, got #{signing_key.class}. " \
+              "Use JWT::PQ::HybridKey.generate to create a hybrid key."
+            )
+          end
+          raise_sign_error!("Both Ed25519 and ML-DSA private keys required") unless signing_key.private?
 
-          ed_sig = key.ed25519_signing_key.sign(data)
-          ml_sig = key.ml_dsa_key.sign(data)
+          ed_sig = signing_key.ed25519_signing_key.sign(data)
+          ml_sig = signing_key.ml_dsa_key.sign(data)
 
           # Concatenate: Ed25519 (64 bytes) || ML-DSA (variable)
           ed_sig + ml_sig
@@ -57,9 +65,7 @@ module JWT
 
         private
 
-        def ml_dsa_algorithm
-          alg.sub("EdDSA+", "")
-        end
+        attr_reader :ml_dsa_algorithm
 
         def resolve_signing_key(key)
           case key
