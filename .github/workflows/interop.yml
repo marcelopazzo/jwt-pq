@@ -37,10 +37,10 @@ jobs:
         run: pip install "dilithium-py==1.4.0"
 
       - name: Ruby signs
-        run: bundle exec ruby .github/interop/ruby_sign.rb interop_out
+        run: bundle exec ruby spec/interop/ruby_sign.rb interop_out
 
       - name: Python verifies
-        run: python .github/interop/python_verify.py interop_out
+        run: python spec/interop/python_verify.py interop_out
 
   python-sign-ruby-verify:
     name: Python signs → Ruby verifies
@@ -67,7 +67,7 @@ jobs:
         run: pip install "dilithium-py==1.4.0"
 
       - name: Python signs
-        run: python .github/interop/python_sign.py interop_out
+        run: python spec/interop/python_sign.py interop_out
 
       - name: Ruby verifies
-        run: bundle exec ruby .github/interop/ruby_verify.rb interop_out
+        run: bundle exec ruby spec/interop/ruby_verify.rb interop_out
