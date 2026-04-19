@@ -6,7 +6,7 @@ module JWT
   module PQ
     # Represents an ML-DSA keypair (public + optional private key).
     # Used as the signing/verification key for JWT operations.
-    class Key
+    class Key # rubocop:disable Metrics/ClassLength
       ALGORITHM_ALIASES = {
         ml_dsa_44: "ML-DSA-44",
         ml_dsa_65: "ML-DSA-65",
@@ -50,7 +50,7 @@ module JWT
       def sign(data)
         raise KeyError, "Private key not available — cannot sign" unless @private_key
 
-        @ml_dsa.sign(data, @private_key)
+        @ml_dsa.sign_with_sk_buffer(data, sk_buffer)
       end
 
       # Verify a signature using the public key.
@@ -70,6 +70,8 @@ module JWT
           @private_key.replace("\0" * @private_key.bytesize)
           @private_key = nil
         end
+        @sk_buffer&.clear
+        @sk_buffer = nil
         true
       end
 
@@ -152,6 +154,10 @@ module JWT
       private_class_method :resolve_algorithm, :extract_secure_bytes, :resolve_oid!, :build_from_pkcs8
 
       private
+
+      def sk_buffer
+        @sk_buffer ||= FFI::MemoryPointer.new(:uint8, @private_key.bytesize).put_bytes(0, @private_key)
+      end
 
       def resolve_algorithm(algorithm)
         self.class.send(:resolve_algorithm, algorithm)

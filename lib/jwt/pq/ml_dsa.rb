@@ -11,6 +11,20 @@ module JWT
         "ML-DSA-87" => { public_key: 2592, secret_key: 4896, signature: 4627, nist_level: 5 }
       }.freeze
 
+      @sign_handles = {}
+      @sign_handles_mutex = Mutex.new
+
+      def self.sign_handle(algorithm)
+        @sign_handles[algorithm] || @sign_handles_mutex.synchronize do
+          @sign_handles[algorithm] ||= begin
+            h = LibOQS.OQS_SIG_new(algorithm)
+            raise LiboqsError, "Failed to initialize #{algorithm}" if h.null?
+
+            h
+          end
+        end
+      end
+
       attr_reader :algorithm
 
       def initialize(algorithm)
@@ -48,24 +62,28 @@ module JWT
       def sign(message, secret_key)
         validate_key_size!(secret_key, :secret_key)
 
-        sig = LibOQS.OQS_SIG_new(@algorithm)
-        raise LiboqsError, "Failed to initialize #{@algorithm}" if sig.null?
+        sk_buf = FFI::MemoryPointer.new(:uint8, secret_key.bytesize)
+        sk_buf.put_bytes(0, secret_key)
+        sign_with_sk_buffer(message, sk_buf)
+      ensure
+        sk_buf&.clear
+      end
 
+      # Faster sign path: takes a pre-populated FFI::MemoryPointer holding the
+      # secret key. Caller is responsible for buffer lifecycle (allocation,
+      # zeroing). Used by JWT::PQ::Key to avoid re-allocating+copying the
+      # secret key on every sign call.
+      def sign_with_sk_buffer(message, sk_buf)
+        sig = self.class.sign_handle(@algorithm)
         sig_buf = FFI::MemoryPointer.new(:uint8, @sizes[:signature])
         sig_len = FFI::MemoryPointer.new(:size_t)
         msg_buf = FFI::MemoryPointer.from_string(message)
-        sk_buf = FFI::MemoryPointer.new(:uint8, secret_key.bytesize)
-        sk_buf.put_bytes(0, secret_key)
 
         status = LibOQS.OQS_SIG_sign(sig, sig_buf, sig_len,
                                      msg_buf, message.bytesize, sk_buf)
         raise SignatureError, "Signing failed for #{@algorithm}" unless status == LibOQS::OQS_SUCCESS
 
-        actual_len = sig_len.read(:size_t)
-        sig_buf.read_bytes(actual_len)
-      ensure
-        sk_buf&.clear
-        LibOQS.OQS_SIG_free(sig) if sig && !sig.null?
+        sig_buf.read_bytes(sig_len.read(:size_t))
       end
 
       # Verify a signature against a message and public key.
