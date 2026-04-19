@@ -7,16 +7,14 @@ RSpec.describe "ML-DSA sigVer KATs (NIST ACVP)" do
   fixture = JSON.parse(File.read(fixture_path))
 
   fixture["groups"].each do |group|
-    alg = group["parameterSet"]
-
-    context "with #{alg} (interface=#{group["signatureInterface"]}, preHash=#{group["preHash"]})" do
+    context "with #{group["parameterSet"]} (interface=#{group["signatureInterface"]}, preHash=#{group["preHash"]})" do
       group["tests"].each do |tc|
         it "tcId=#{tc["tcId"]} verify returns #{tc["testPassed"]}" do
           pk_bytes = [tc["pk"]].pack("H*")
           sig_bytes = [tc["signature"]].pack("H*")
           msg_bytes = [tc["message"]].pack("H*")
 
-          key = JWT::PQ::Key.from_public_key(alg, pk_bytes)
+          key = JWT::PQ::Key.from_public_key(group["parameterSet"], pk_bytes)
           expect(key.verify(msg_bytes, sig_bytes)).to eq(tc["testPassed"])
         end
       end
