@@ -11,7 +11,7 @@ FIXTURES = {
   "ML-DSA-87" => "ml_dsa_87_sk.pem"
 }.freeze
 
-fixture_name = FIXTURES.fetch(ALG) { abort "Unknown ALG=#{ALG}. Expected one of: #{FIXTURES.keys.join(', ')}" }
+fixture_name = FIXTURES.fetch(ALG) { abort "Unknown ALG=#{ALG}. Expected one of: #{FIXTURES.keys.join(", ")}" }
 fixture_path = File.expand_path("fixtures/#{fixture_name}", __dir__)
 
 PAYLOAD = { sub: "user-123", iat: 1_700_000_000, exp: 1_700_003_600 }.freeze
