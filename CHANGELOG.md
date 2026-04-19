@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Parameterized bench harnesses (`bench/sign_throughput.rb`, `bench/verify_throughput.rb`) via `ALG` env var — previously hardcoded to `ML-DSA-65`, now supports all three security levels
+- PEM key fixtures for ML-DSA-44 and ML-DSA-87 under `bench/fixtures/`
+- `bench/generate_fixtures.rb` to (re)generate fixture keys idempotently
+
+### Benchmarks
+
+Throughput on Ruby 3.4.6, macOS x86_64, liboqs 0.15.0 (benchmark-ips, 2s warmup + 5s measurement):
+
+| Algorithm  |      Sign |     Verify |
+|------------|----------:|-----------:|
+| ML-DSA-44  |  9678 ops/s  | 12650 ops/s |
+| ML-DSA-65  |  6236 ops/s  |  8567 ops/s |
+| ML-DSA-87  |  3591 ops/s  |  6510 ops/s |
+
 ## [0.3.0] - 2026-04-19
 
 ### Added
