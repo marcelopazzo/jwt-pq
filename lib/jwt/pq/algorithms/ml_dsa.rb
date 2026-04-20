@@ -27,8 +27,10 @@ module JWT
             )
           end
           verification_key.verify(data, signature)
+        # :nocov: — defensive rescue; Key#verify returns bool, does not raise PQ::Error in practice
         rescue JWT::PQ::Error
           false
+          # :nocov:
         end
 
         private
@@ -40,18 +42,6 @@ module JWT
             key
           else
             raise_sign_error!(
-              "Expected a JWT::PQ::Key, got #{key.class}. " \
-              "Use JWT::PQ::Key.generate(:#{alg_symbol}) to create a key."
-            )
-          end
-        end
-
-        def resolve_verification_key(key)
-          case key
-          when JWT::PQ::Key
-            key
-          else
-            raise_verify_error!(
               "Expected a JWT::PQ::Key, got #{key.class}. " \
               "Use JWT::PQ::Key.generate(:#{alg_symbol}) to create a key."
             )
