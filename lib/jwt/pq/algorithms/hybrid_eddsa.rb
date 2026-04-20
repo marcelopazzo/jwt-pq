@@ -58,20 +58,32 @@ module JWT
           ed_sig = signature.byteslice(0, ED25519_SIG_SIZE)
           ml_sig = signature.byteslice(ED25519_SIG_SIZE..)
 
-          ed_valid = begin
-            verification_key.ed25519_verify_key.verify(ed_sig, data)
-            true
-          rescue Ed25519::VerifyError
-            false
-          end
-
+          ed_valid = safe_ed25519_verify(verification_key.ed25519_verify_key, ed_sig, data)
           ml_valid = verification_key.ml_dsa_key.verify(data, ml_sig)
 
-          ed_valid && ml_valid
+          # Bitwise `&`, not `&&`: both checks are already computed above,
+          # and a bitwise AND over booleans has no short-circuit, so the
+          # final combinator does not branch on which half failed. This
+          # does not give a cryptographic constant-time guarantee (Ruby
+          # can't), but it removes the obvious observable path.
+          ed_valid & ml_valid
         # :nocov: — defensive rescue; Key#verify returns bool, does not raise PQ::Error in practice
         rescue JWT::PQ::Error
           false
           # :nocov:
+        end
+
+        # Boolean-returning wrapper over `Ed25519::VerifyKey#verify`, which
+        # raises on failure. Gives the verify path a uniform shape for both
+        # halves (both produce a bool by assignment, rather than one via
+        # return value and one via rescue).
+        #
+        # @api private
+        def safe_ed25519_verify(verify_key, signature, data)
+          verify_key.verify(signature, data)
+          true
+        rescue Ed25519::VerifyError
+          false
         end
 
         register_algorithm(new("EdDSA+ML-DSA-44"))
