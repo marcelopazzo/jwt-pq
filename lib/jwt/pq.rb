@@ -7,6 +7,7 @@ require_relative "pq/ml_dsa"
 require_relative "pq/key"
 require_relative "pq/algorithms/ml_dsa"
 require_relative "pq/jwk"
+require_relative "pq/jwk_set"
 require_relative "pq/hybrid_key"
 require_relative "pq/algorithms/hybrid_eddsa"
 

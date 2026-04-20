@@ -141,6 +141,24 @@ module JWT
       end
       alias to_s inspect
 
+      # RFC 7638 JWK Thumbprint for this key, memoized.
+      #
+      # The thumbprint depends only on the canonical JSON of
+      # `{alg, kty, pub}` — all immutable for the lifetime of a Key —
+      # so it is computed lazily on first access and cached. Useful for
+      # callers (e.g. {JWT::PQ::JWKSet}) that index many keys by `kid`
+      # without wanting to allocate a {JWK} wrapper each time.
+      #
+      # Safe to call concurrently on a shared key: the inputs are
+      # immutable post-construction, so a concurrent first access at
+      # worst recomputes the same deterministic string; the `||=`
+      # assignment is a single atomic reference write on MRI.
+      #
+      # @return [String] base64url-encoded SHA-256 thumbprint.
+      def jwk_thumbprint
+        @jwk_thumbprint ||= JWT::PQ::JWK.compute_thumbprint(@algorithm, @public_key)
+      end
+
       # Import a Key from a PEM string.
       #
       # Accepts both SPKI (public-only) and PKCS#8 (private + embedded public)
