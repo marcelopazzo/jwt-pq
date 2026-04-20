@@ -73,17 +73,23 @@ module JWT
       # @return [JWT::PQ::Key] a key reconstructed from the JWK — with a
       #   private component iff the JWK carried a `priv` field.
       # @raise [KeyError] on missing/wrong `kty`, missing/unsupported `alg`,
-      #   missing `pub`, or invalid base64url in `pub`/`priv`.
+      #   missing `pub`, wrong field types, or invalid base64url in
+      #   `pub`/`priv`.
       def self.import(jwk_hash)
+        raise KeyError, "Expected a Hash for JWK, got #{jwk_hash.class}" unless jwk_hash.is_a?(Hash)
+
         jwk = normalize_keys(jwk_hash)
 
         validate_kty!(jwk)
         alg = validate_alg!(jwk)
         raise KeyError, "Missing 'pub' in JWK" unless jwk.key?("pub")
+        raise KeyError, "'pub' must be a String, got #{jwk["pub"].class}" unless jwk["pub"].is_a?(String)
 
         pub_bytes = decode_field(jwk, "pub")
 
         if jwk.key?("priv")
+          raise KeyError, "'priv' must be a String, got #{jwk["priv"].class}" unless jwk["priv"].is_a?(String)
+
           priv_bytes = decode_field(jwk, "priv")
           Key.new(algorithm: alg, public_key: pub_bytes, private_key: priv_bytes)
         else
