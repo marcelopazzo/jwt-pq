@@ -149,6 +149,11 @@ module JWT
       # callers (e.g. {JWT::PQ::JWKSet}) that index many keys by `kid`
       # without wanting to allocate a {JWK} wrapper each time.
       #
+      # Safe to call concurrently on a shared key: the inputs are
+      # immutable post-construction, so a concurrent first access at
+      # worst recomputes the same deterministic string; the `||=`
+      # assignment is a single atomic reference write on MRI.
+      #
       # @return [String] base64url-encoded SHA-256 thumbprint.
       def jwk_thumbprint
         @jwk_thumbprint ||= JWT::PQ::JWK.compute_thumbprint(@algorithm, @public_key)
