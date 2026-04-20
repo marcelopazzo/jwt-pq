@@ -48,6 +48,19 @@ RSpec.describe JWT::PQ::JWKSet do
     it "rejects non-Key inputs" do
       expect { set.add("nope") }.to raise_error(JWT::PQ::KeyError, /JWT::PQ::Key/)
     end
+
+    it "is idempotent on duplicate kid (same key instance)" do
+      set.add(key_a).add(key_a)
+      expect(set.size).to eq(1)
+      expect(set[kid_a]).to equal(key_a)
+    end
+
+    it "is idempotent on duplicate kid (equivalent public key, different instance)" do
+      twin = JWT::PQ::Key.from_public_key(:ml_dsa_44, key_a.public_key)
+      set.add(key_a).add(twin)
+      expect(set.size).to eq(1)
+      expect(set[kid_a]).to equal(key_a)
+    end
   end
 
   describe "lookup" do
@@ -129,9 +142,28 @@ RSpec.describe JWT::PQ::JWKSet do
       expect(parsed["keys"].first).not_to have_key("priv")
     end
 
-    it "honors include_private" do
-      parsed = JSON.parse(set.to_json(include_private: true))
+    it "emits private material via JSON.generate(set.export(include_private: true))" do
+      parsed = JSON.parse(JSON.generate(set.export(include_private: true)))
       expect(parsed["keys"].first["priv"]).to be_a(String)
+    end
+
+    it "serializes correctly when nested inside another Hash" do
+      wrapped = { jwks: set }.to_json
+      parsed = JSON.parse(wrapped)
+      expect(parsed["jwks"]["keys"].size).to eq(1)
+      expect(parsed["jwks"]["keys"].first["kty"]).to eq("AKP")
+    end
+
+    it "never leaks priv when nested, even when the set owns private keys" do
+      wrapped = { jwks: set }.to_json
+      expect(wrapped).not_to include("\"priv\"")
+    end
+  end
+
+  describe "#inspect" do
+    it "reports size without exposing key material" do
+      set = described_class.new([key_a, key_b])
+      expect(set.inspect).to eq("#<JWT::PQ::JWKSet size=2>")
     end
   end
 

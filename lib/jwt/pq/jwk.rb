@@ -93,15 +93,27 @@ module JWT
 
       # Compute the JWK Thumbprint (RFC 7638) used as `kid`.
       #
-      # Hashes the canonical JSON form over the AKP required members
-      # (`alg`, `kty`, `pub`) with SHA-256 and encodes the digest as
-      # base64url without padding.
+      # Delegates to {JWT::PQ::Key#jwk_thumbprint}, which memoizes the
+      # result on the key — repeated calls on the same key avoid
+      # recomputing the canonical JSON + SHA-256 digest.
       #
       # @return [String] base64url-encoded SHA-256 thumbprint.
       def thumbprint
-        canonical = "{\"alg\":\"#{@key.algorithm}\",\"kty\":\"#{KTY}\",\"pub\":\"#{base64url_encode(@key.public_key)}\"}"
+        @key.jwk_thumbprint
+      end
+
+      # Compute an RFC 7638 thumbprint from algorithm + public key bytes
+      # without allocating a {JWK} or {JWT::PQ::Key} wrapper.
+      #
+      # @api private
+      # @param algorithm [String] canonical algorithm name.
+      # @param public_key [String] raw public key bytes.
+      # @return [String] base64url-encoded SHA-256 thumbprint.
+      def self.compute_thumbprint(algorithm, public_key)
+        pub_b64 = ::Base64.urlsafe_encode64(public_key, padding: false)
+        canonical = "{\"alg\":\"#{algorithm}\",\"kty\":\"#{KTY}\",\"pub\":\"#{pub_b64}\"}"
         digest = OpenSSL::Digest::SHA256.digest(canonical)
-        base64url_encode(digest)
+        ::Base64.urlsafe_encode64(digest, padding: false)
       end
 
       # @api private

@@ -43,14 +43,22 @@ module JWT
 
       # Add a key to the set.
       #
+      # Idempotent: if a key with the same RFC 7638 thumbprint is already
+      # in the set, the call is a no-op (Set semantics). The thumbprint
+      # is computed before any mutation, so a failure to derive the
+      # `kid` leaves the set unchanged.
+      #
       # @param key [JWT::PQ::Key] the key to add.
       # @return [JWKSet] self, for chaining.
       # @raise [KeyError] if `key` is not a {JWT::PQ::Key}.
       def add(key)
         raise KeyError, "Expected a JWT::PQ::Key, got #{key.class}" unless key.is_a?(JWT::PQ::Key)
 
+        kid = key.jwk_thumbprint
+        return self if @kid_index.key?(kid)
+
         @keys << key
-        @kid_index[JWK.new(key).thumbprint] = key
+        @kid_index[kid] = key
         self
       end
 
@@ -99,16 +107,34 @@ module JWT
 
       # Serialize the set as a JWKS JSON document.
       #
-      # @param include_private [Boolean] include `priv` on each key. Default: false.
+      # Always emits public-only keys — the `priv` field is never
+      # written out. This keeps the method safe for arbitrary nesting
+      # inside other JSON (e.g. `{ jwks: set }.to_json`), where Ruby's
+      # stdlib JSON passes a generator state as a positional argument.
+      # To publish private material (unusual), call
+      # `JSON.generate(set.export(include_private: true))` explicitly.
+      #
       # @return [String] a JSON document ready for `/.well-known/jwks.json`.
-      def to_json(include_private: false)
-        JSON.generate(export(include_private: include_private))
+      def to_json(*)
+        export.to_json(*)
       end
+
+      # @return [String] short diagnostic string — never contains key material.
+      def inspect
+        "#<#{self.class} size=#{size}>"
+      end
+      alias to_s inspect
 
       # Import a JWKS from a Hash or JSON string.
       #
       # Each member is reconstructed via {JWT::PQ::JWK.import}; malformed
       # members raise {KeyError}.
+      #
+      # ML-DSA public keys are ~1.3–2.6 KB each, so a JWKS with N keys is
+      # at least N × ~2 KB. When ingesting untrusted JWKS payloads (e.g.
+      # a remote `/.well-known/jwks.json`), bound the HTTP body size
+      # before calling `import` — this method does not cap the number of
+      # members.
       #
       # @param source [Hash, String] a JWKS hash or JSON string with a
       #   `"keys"` array.
