@@ -41,6 +41,25 @@ module JWT
         end
       end
 
+      # Drop the process-wide cache of `OQS_SIG` handles.
+      #
+      # The first call to {.sign_handle} or {.verify_handle} in a process
+      # (or after this reset) lazily allocates a fresh handle. The
+      # inherited handles in the child are not explicitly freed — doing
+      # so can confuse `malloc` bookkeeping across forked processes. The
+      # handles leak until process exit (≤3 algorithms × <1 KB each),
+      # which is negligible.
+      #
+      # Prefer the public {JWT::PQ.reset_handles!} wrapper from
+      # application code.
+      #
+      # @api private
+      # @return [void]
+      def self.reset_handles!
+        @sign_handles_mutex.synchronize { @sign_handles.clear }
+        @verify_handles_mutex.synchronize { @verify_handles.clear }
+      end
+
       attr_reader :algorithm
 
       def initialize(algorithm)
