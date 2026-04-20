@@ -20,5 +20,10 @@ module JWT
 
     # Raised when a signing operation fails inside liboqs.
     class SignatureError < Error; end
+
+    # Raised when a remote JWKS fetch fails — network error, timeout,
+    # non-2xx response, oversized body, or blocked URL (non-HTTPS, redirect).
+    # Parsing failures on the fetched body still surface as {KeyError}.
+    class JWKSFetchError < Error; end
   end
 end

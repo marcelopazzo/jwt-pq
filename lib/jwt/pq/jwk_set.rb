@@ -167,6 +167,30 @@ module JWT
         end
       end
       private_class_method :coerce_to_hash
+
+      # Fetch a JWKS from a URL, honouring the process-global cache.
+      #
+      # Convenience wrapper around {Loader#fetch} using
+      # {Loader.default} — the cache is shared across all callers, so
+      # repeated hits on the same URL within `cache_ttl` seconds return
+      # the in-memory set without touching the network.
+      #
+      # See {Loader} for the full option reference (cache TTL, timeouts,
+      # body-size cap, HTTPS enforcement, ETag-based revalidation).
+      #
+      # @example Verify a token using a remote JWKS
+      #   jwks = JWT::PQ::JWKSet.fetch("https://issuer.example/.well-known/jwks.json")
+      #   _payload, header = JWT.decode(token, nil, false)
+      #   key = jwks[header["kid"]] or raise "unknown kid"
+      #   payload, = JWT.decode(token, key, true, algorithms: [header["alg"]])
+      #
+      # @param url [String] absolute JWKS URL.
+      # @return [JWKSet] the parsed set of verification keys.
+      # @raise [JWKSFetchError] on fetch failure (see {Loader#fetch}).
+      # @raise [KeyError] if the fetched body is not a valid JWKS.
+      def self.fetch(url, **)
+        Loader.default.fetch(url, **)
+      end
     end
   end
 end
