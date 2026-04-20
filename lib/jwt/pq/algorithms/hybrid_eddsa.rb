@@ -5,11 +5,16 @@ require "jwt"
 module JWT
   module PQ
     module Algorithms
+      # @api private
+      #
       # JWT signing algorithm for hybrid EdDSA + ML-DSA signatures.
       #
       # The signature is a simple concatenation: ed25519_sig (64 bytes) || ml_dsa_sig.
       # This allows PQ-aware verifiers to validate both, while the fixed 64-byte
       # Ed25519 prefix makes it possible to split the signatures deterministically.
+      #
+      # Users interact with these algorithms via `JWT.encode`/`JWT.decode` by
+      # name (`"EdDSA+ML-DSA-*"`); they never instantiate this class directly.
       class HybridEdDsa
         include ::JWT::JWA::SigningAlgorithm
 
