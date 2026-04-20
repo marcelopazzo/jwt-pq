@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "base64"
+require "json"
 require "openssl"
 
 module JWT
@@ -110,8 +111,14 @@ module JWT
       # @param public_key [String] raw public key bytes.
       # @return [String] base64url-encoded SHA-256 thumbprint.
       def self.compute_thumbprint(algorithm, public_key)
+        # RFC 7638 §3.2: canonical JSON over the required members in
+        # lexicographic order (alg, kty, pub), no whitespace. Using
+        # `JSON.generate` over an ordered Hash instead of string
+        # interpolation so a future algorithm or key-byte change that
+        # introduces a character needing JSON escape does not silently
+        # produce a divergent thumbprint.
         pub_b64 = ::Base64.urlsafe_encode64(public_key, padding: false)
-        canonical = "{\"alg\":\"#{algorithm}\",\"kty\":\"#{KTY}\",\"pub\":\"#{pub_b64}\"}"
+        canonical = JSON.generate({ alg: algorithm, kty: KTY, pub: pub_b64 })
         digest = OpenSSL::Digest::SHA256.digest(canonical)
         ::Base64.urlsafe_encode64(digest, padding: false)
       end
