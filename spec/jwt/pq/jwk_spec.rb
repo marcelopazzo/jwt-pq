@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+require "json"
+require "openssl"
+require "base64"
+
 RSpec.describe JWT::PQ::JWK do
   JWT::PQ::MlDsa::ALGORITHMS.each_key do |alg_name|
     context "with #{alg_name}" do
@@ -72,6 +76,19 @@ RSpec.describe JWT::PQ::JWK do
         it "is used as kid in export" do
           exported = jwk.export
           expect(exported[:kid]).to eq(jwk.thumbprint)
+        end
+
+        # Independent RFC 7638 thumbprint calculation, following the AKP
+        # required-members list from draft-ietf-cose-dilithium: alg, kty, pub.
+        # Any divergence here (field order, field name, JSON canonicalization,
+        # hash, encoding) would break interop with other AKP implementations.
+        it "matches an independent RFC 7638 computation over (alg, kty, pub)" do
+          pub_b64 = Base64.urlsafe_encode64(key.public_key, padding: false)
+          canonical = JSON.generate("alg" => alg_name, "kty" => "AKP", "pub" => pub_b64)
+          expected_digest = OpenSSL::Digest::SHA256.digest(canonical)
+          expected = Base64.urlsafe_encode64(expected_digest, padding: false)
+
+          expect(jwk.thumbprint).to eq(expected)
         end
       end
 
