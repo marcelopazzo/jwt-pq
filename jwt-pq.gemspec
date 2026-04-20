@@ -36,7 +36,7 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir.chdir(__dir__) do
     `git ls-files -z`.split("\x0").reject do |f|
-      f.start_with?("spec/", "vendor/", ".github/", "bench/") ||
+      f.start_with?("spec/", "vendor/", ".github/", "bench/", "bin/") ||
         f.match?(/\A(?:\.git|\.rspec|\.rubocop|jwt-pq-plan)/)
     end
   end
@@ -46,5 +46,8 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "ffi", "~> 1.15"
   spec.add_dependency "jwt", "~> 3.0"
-  spec.add_dependency "pqc_asn1", "~> 0.1"
+  # Pre-1.0 crypto dependency: tightened to `~> 0.1.0` (patch-only) so a
+  # 0.2.0 release with a potential API break does not silently upgrade.
+  # Bump manually after vetting each new minor.
+  spec.add_dependency "pqc_asn1", "~> 0.1.0"
 end
