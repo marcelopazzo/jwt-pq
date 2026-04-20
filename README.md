@@ -129,7 +129,7 @@ restored = JWT::PQ::JWK.import(jwk_hash)
 
 The hybrid algorithms (`EdDSA+ML-DSA-{44,65,87}`) provide defense-in-depth: if either algorithm is broken, the other still protects the token.
 
-The `alg` header values follow a `ClassicAlg+PQAlg` convention. The IETF draft `draft-ietf-cose-dilithium` is still evolving — these values may change in future versions to align with the final standard.
+The `alg` header values follow a `ClassicAlg+PQAlg` convention. The IETF draft [`draft-ietf-cose-dilithium`](https://datatracker.ietf.org/doc/draft-ietf-cose-dilithium/) is still evolving — these values may change in future versions to align with the final standard.
 
 ## Correctness
 
@@ -155,13 +155,13 @@ ML-DSA operations are delegated to [liboqs](https://github.com/open-quantum-safe
 
 ## Specification tracking
 
-jwt-pq targets the current IETF drafts for JOSE/COSE post-quantum signatures. The tracked drafts are:
+jwt-pq targets the current IETF specs for JOSE/COSE post-quantum signatures:
 
-- [`draft-ietf-cose-dilithium`](https://datatracker.ietf.org/doc/draft-ietf-cose-dilithium/) — ML-DSA in JOSE/COSE, including the `AKP` key type
-- [`draft-ietf-jose-fully-specified-algorithms`](https://datatracker.ietf.org/doc/draft-ietf-jose-fully-specified-algorithms/) — fully specified algorithm identifiers
-- [`FIPS 204`](https://csrc.nist.gov/pubs/fips/204/final) — ML-DSA itself
+- [`draft-ietf-cose-dilithium`](https://datatracker.ietf.org/doc/draft-ietf-cose-dilithium/) — ML-DSA in JOSE/COSE, including the `AKP` key type *(draft)*
+- [RFC 9864](https://datatracker.ietf.org/doc/rfc9864/) — Fully-Specified Algorithms for JOSE and COSE *(published October 2025)*
+- [FIPS 204](https://csrc.nist.gov/pubs/fips/204/final) — ML-DSA itself *(final)*
 
-Because these drafts are still pre-RFC, the JWK `kty`/`alg` values, header registration, and hybrid concatenation format may change between jwt-pq minor releases. Breaking changes will be called out in [CHANGELOG.md](CHANGELOG.md) and bump the minor version pre-1.0 (or the major version post-1.0).
+Because `draft-ietf-cose-dilithium` is still pre-RFC, the JWK `kty`/`alg` values, header registration, and hybrid concatenation format may change between jwt-pq minor releases. Breaking changes will be called out in [CHANGELOG.md](CHANGELOG.md) and bump the minor version pre-1.0 (or the major version post-1.0).
 
 ## Thread safety
 
