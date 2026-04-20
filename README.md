@@ -131,6 +131,52 @@ The hybrid algorithms (`EdDSA+ML-DSA-{44,65,87}`) provide defense-in-depth: if e
 
 The `alg` header values follow a `ClassicAlg+PQAlg` convention. The IETF draft `draft-ietf-cose-dilithium` is still evolving — these values may change in future versions to align with the final standard.
 
+## Correctness
+
+- **NIST ACVP known-answer tests.** `spec/jwt/pq/kat_spec.rb` runs the full sigVer KAT subset shipped with liboqs against `JWT::PQ::Key#verify` for ML-DSA-44/65/87, covering both positive and negative cases. These vectors are executed in CI on every push. (sigGen KATs are not used because FIPS 204 specifies hedged signing with internal randomness, which makes signature output non-deterministic.)
+- **Cross-language interop.** The [`Cross-interop`](https://github.com/marcelopazzo/jwt-pq/actions/workflows/interop.yml) workflow signs with `jwt-pq` and verifies with [`dilithium-py`](https://pypi.org/project/dilithium-py/), and vice versa, for all three parameter sets. It runs on every push and weekly on `cron`.
+
+## Performance
+
+Measured with `bench/sign_throughput.rb` / `bench/verify_throughput.rb` (and the hybrid variants) using `benchmark-ips`. Hardware: Intel Core i9-9880H @ 2.30 GHz, macOS, Ruby 3.4.6, bundled liboqs 0.15.0, single-threaded.
+
+| Algorithm | Sign | Verify |
+|---|---|---|
+| ML-DSA-44 | 8,026 ops/s (125 µs) | 11,074 ops/s (90 µs) |
+| ML-DSA-65 | 5,972 ops/s (167 µs) | 9,339 ops/s (107 µs) |
+| ML-DSA-87 | 4,911 ops/s (204 µs) | 6,471 ops/s (155 µs) |
+| EdDSA+ML-DSA-65 | 4,695 ops/s (213 µs) | 3,924 ops/s (255 µs) |
+
+Numbers are illustrative — rerun `bundle exec ruby bench/sign_throughput.rb` on your target hardware before capacity-planning. ML-DSA is ~1–2 orders of magnitude slower than Ed25519 (~70 k sigs/s on the same box); plan accordingly.
+
+## Backends
+
+ML-DSA operations are delegated to [liboqs](https://github.com/open-quantum-safe/liboqs), bundled and compiled during `gem install`. An alternative OpenSSL 3.5+ backend is tracked in [#14](https://github.com/marcelopazzo/jwt-pq/issues/14) and will be added once OpenSSL 3.5 ships widely in distros.
+
+## Specification tracking
+
+jwt-pq targets the current IETF drafts for JOSE/COSE post-quantum signatures. The tracked drafts are:
+
+- [`draft-ietf-cose-dilithium`](https://datatracker.ietf.org/doc/draft-ietf-cose-dilithium/) — ML-DSA in JOSE/COSE, including the `AKP` key type
+- [`draft-ietf-jose-fully-specified-algorithms`](https://datatracker.ietf.org/doc/draft-ietf-jose-fully-specified-algorithms/) — fully specified algorithm identifiers
+- [`FIPS 204`](https://csrc.nist.gov/pubs/fips/204/final) — ML-DSA itself
+
+Because these drafts are still pre-RFC, the JWK `kty`/`alg` values, header registration, and hybrid concatenation format may change between jwt-pq minor releases. Breaking changes will be called out in [CHANGELOG.md](CHANGELOG.md) and bump the minor version pre-1.0 (or the major version post-1.0).
+
+## Thread safety
+
+- `JWT::PQ::Key` and `JWT::PQ::HybridKey` are safe to share across threads for **verification**. The underlying `OQS_SIG` verify context is process-global and reused; verify itself is stateless at the liboqs level.
+- **Signing** from multiple threads with the *same* `Key` instance is also safe in practice (liboqs ML-DSA sign does not mutate context state), but if you want the strongest guarantee, give each thread its own `Key` and use `destroy!` when done.
+- `destroy!` mutates the receiver — do not call it concurrently with `#sign` / `#verify`.
+
+## Algorithm registration
+
+`require "jwt/pq"` registers `ML-DSA-{44,65,87}` and `EdDSA+ML-DSA-{44,65,87}` with ruby-jwt via the **public** `JWT::JWA::SigningAlgorithm.register_algorithm` API — this is not a monkey-patch. The registration is idempotent and coexists with other custom algorithms (e.g. `jwt-eddsa`). Load order between `jwt` and `jwt/pq` does not matter.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the supported-versions policy, vulnerability reporting process, and how upstream liboqs advisories are handled.
+
 ## Development
 
 ```bash
