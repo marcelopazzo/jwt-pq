@@ -2,6 +2,8 @@
 
 module JWT
   module PQ
+    # @api private
+    #
     # Ruby wrapper around liboqs ML-DSA operations.
     # Handles memory allocation, FFI calls, and cleanup.
     class MlDsa

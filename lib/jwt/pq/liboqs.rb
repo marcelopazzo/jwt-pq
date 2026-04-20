@@ -4,6 +4,8 @@ require "ffi"
 
 module JWT
   module PQ
+    # @api private
+    #
     # FFI bindings for liboqs signature operations.
     #
     # Library search order:

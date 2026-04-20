@@ -4,9 +4,17 @@ require "jwt"
 
 module JWT
   module PQ
+    # @api private
+    #
+    # ruby-jwt `SigningAlgorithm` implementations that register jwt-pq's
+    # algorithms on load. Not intended for direct use.
     module Algorithms
+      # @api private
+      #
       # JWT signing algorithm implementation for ML-DSA (FIPS 204).
       # Registers ML-DSA-44, ML-DSA-65, and ML-DSA-87 with the ruby-jwt library.
+      # Users interact with these algorithms via `JWT.encode`/`JWT.decode` by
+      # name; they never instantiate this class directly.
       class MlDsa
         include ::JWT::JWA::SigningAlgorithm
 

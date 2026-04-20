@@ -1,0 +1,9 @@
+--markup markdown
+--readme README.md
+--files CHANGELOG.md,SECURITY.md
+--output-dir doc
+--no-private
+--protected
+lib/**/*.rb
+-
+LICENSE
