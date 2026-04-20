@@ -42,5 +42,23 @@ module JWT
     rescue LoadError
       false
     end
+
+    # Drop the cache of liboqs signature handles held by this process.
+    #
+    # Call from a post-fork hook in clustered Rack/Rails servers so
+    # that child workers allocate fresh FFI handles instead of reusing
+    # pointers inherited from the parent via copy-on-write. The first
+    # sign/verify call in the child will lazily rebuild the handle.
+    #
+    # @example Puma (config/puma.rb)
+    #   on_worker_boot { JWT::PQ.reset_handles! }
+    #
+    # @example Unicorn
+    #   after_fork { |_server, _worker| JWT::PQ.reset_handles! }
+    #
+    # @return [void]
+    def self.reset_handles!
+      MlDsa.reset_handles!
+    end
   end
 end

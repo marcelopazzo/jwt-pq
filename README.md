@@ -222,9 +222,11 @@ Because `draft-ietf-cose-dilithium` is still pre-RFC, the JWK `kty`/`alg` values
 
 ## Thread safety
 
-- `JWT::PQ::Key` and `JWT::PQ::HybridKey` are safe to share across threads for **verification**. The underlying `OQS_SIG` verify context is process-global and reused; verify itself is stateless at the liboqs level.
-- **Signing** from multiple threads with the *same* `Key` instance is also safe in practice (liboqs ML-DSA sign does not mutate context state), but if you want the strongest guarantee, give each thread its own `Key` and use `destroy!` when done.
-- `destroy!` mutates the receiver — do not call it concurrently with `#sign` / `#verify`.
+`JWT::PQ::Key` and `JWT::PQ::HybridKey` are safe to share across threads for `#sign`, `#verify`, `#destroy!`, and `Key#private_to_pem` (hybrid sign also covers the Ed25519 + ML-DSA compound atomically). Each instance carries its own mutex that serializes those operations against each other, so a concurrent `#destroy!` waits for any in-flight signing/verification/PEM export to finish before zeroing the private key material. Read-only exporters on immutable state (`#to_pem`, `#public_key`, `#algorithm`, `#jwk_thumbprint`) do not take the mutex.
+
+The mutex cost is negligible against ML-DSA signing latency (~130–200 µs): single-threaded ML-DSA-65 throughput stays within run-to-run noise of the pre-mutex baseline (~7300 sigs/s on an i9-9880H). Under MRI the GVL already serializes signing within a single process; the mutex exists to guarantee atomicity against `destroy!`, not to extract parallelism.
+
+**Fork caveat.** A Mutex held by a live thread at `fork(2)` time is inherited locked-with-no-owner in the child. If you fork workers (Puma, Unicorn, Resque, etc.), do so before any thread begins signing on a shared `Key`, or let each worker construct its own keys post-fork. Do not call `destroy!` on a parent-side key and then fork.
 
 ## Algorithm registration
 

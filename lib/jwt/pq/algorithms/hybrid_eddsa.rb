@@ -39,11 +39,11 @@ module JWT
           end
           raise_sign_error!("Both Ed25519 and ML-DSA private keys required") unless signing_key.private?
 
-          ed_sig = signing_key.ed25519_signing_key.sign(data)
-          ml_sig = signing_key.ml_dsa_key.sign(data)
-
-          # Concatenate: Ed25519 (64 bytes) || ML-DSA (variable)
-          ed_sig + ml_sig
+          # Delegate to HybridKey#sign so the Ed25519 and ML-DSA halves
+          # are taken atomically under the hybrid key's mutex — a
+          # concurrent destroy! can no longer slip between the two
+          # component signatures.
+          signing_key.sign(data)
         end
 
         def verify(data:, signature:, verification_key:)

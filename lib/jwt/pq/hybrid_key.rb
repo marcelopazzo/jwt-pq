@@ -47,6 +47,7 @@ module JWT
         require_eddsa_dependency!
 
         @ml_dsa_key = ml_dsa
+        @op_mutex = Mutex.new
 
         case ed25519
         when Ed25519::SigningKey
@@ -95,18 +96,51 @@ module JWT
         "EdDSA+#{@ml_dsa_key.algorithm}"
       end
 
+      # Produce a hybrid signature (Ed25519 ‖ ML-DSA) over `data`.
+      #
+      # Thread-safe: both component signatures are taken under the hybrid
+      # key's own mutex, and {#destroy!} contends on the same mutex. That
+      # guarantees a concurrent `destroy!` cannot zero the Ed25519 seed
+      # while libsodium is mid-sign, and cannot produce a half-signed
+      # output (Ed25519 succeeds, ML-DSA fails because the buffer was
+      # just zeroed). Lock order is hybrid mutex → ML-DSA mutex; callers
+      # must not invoke any Key method while holding another lock that
+      # might be taken by `destroy!`.
+      #
+      # @param data [String] message bytes to sign.
+      # @return [String] concatenated signature — 64 bytes of Ed25519
+      #   followed by the ML-DSA signature.
+      # @raise [KeyError] if either half is missing its private component.
+      def sign(data)
+        @op_mutex.synchronize do
+          raise KeyError, "Ed25519 private key not available — cannot sign" unless @ed25519_signing_key
+
+          ed_sig = @ed25519_signing_key.sign(data)
+          ml_sig = @ml_dsa_key.sign(data)
+          ed_sig + ml_sig
+        end
+      end
+
       # Zero and discard private key material from both halves.
       #
       # After calling this, {#private?} becomes false and the key can only
       # be used for verification. Idempotent — safe on verification-only keys.
       #
+      # Thread-safe: serialized on the hybrid key's own mutex (which also
+      # guards {#sign}) and internally delegates to
+      # {JWT::PQ::Key#destroy!}, which uses its own mutex. A concurrent
+      # {#sign} will block until `destroy!` completes and then raise
+      # `KeyError`, never observing a half-destroyed state.
+      #
       # @return [true]
       def destroy!
-        @ml_dsa_key.destroy!
-        if @ed25519_signing_key
-          seed = @ed25519_signing_key.to_bytes
-          seed.replace("\0" * seed.bytesize)
-          @ed25519_signing_key = nil
+        @op_mutex.synchronize do
+          @ml_dsa_key.destroy!
+          if @ed25519_signing_key
+            seed = @ed25519_signing_key.to_bytes
+            seed.replace("\0" * seed.bytesize)
+            @ed25519_signing_key = nil
+          end
         end
         true
       end

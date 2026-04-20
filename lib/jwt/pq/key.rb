@@ -65,8 +65,10 @@ module JWT
         @ml_dsa = MlDsa.new(@algorithm)
         @public_key = public_key
         @private_key = private_key
+        @op_mutex = Mutex.new
 
         validate!
+        init_ffi_buffers!
       end
 
       # Generate a new keypair for the given algorithm.
@@ -94,23 +96,35 @@ module JWT
 
       # Sign data using the private key.
       #
+      # Thread-safe: serialized on a per-instance mutex shared with
+      # {#verify} and {#destroy!}, so a concurrent `destroy!` cannot race
+      # with an in-flight sign. The mutex cost (~hundreds of ns) is
+      # negligible relative to ML-DSA signing (~130–200 µs).
+      #
       # @param data [String] message bytes to sign.
       # @return [String] raw signature bytes.
       # @raise [KeyError] if this key has no private component.
       # @raise [SignatureError] if liboqs reports a signing failure.
       def sign(data)
-        raise KeyError, "Private key not available — cannot sign" unless @private_key
+        @op_mutex.synchronize do
+          raise KeyError, "Private key not available — cannot sign" unless @sk_buffer
 
-        @ml_dsa.sign_with_sk_buffer(data, sk_buffer)
+          @ml_dsa.sign_with_sk_buffer(data, @sk_buffer)
+        end
       end
 
       # Verify a signature against data using the public key.
+      #
+      # Thread-safe: serialized on a per-instance mutex shared with
+      # {#sign} and {#destroy!}.
       #
       # @param data [String] message bytes that were signed.
       # @param signature [String] raw signature bytes produced by {#sign}.
       # @return [Boolean] true if the signature is valid, false otherwise.
       def verify(data, signature)
-        @ml_dsa.verify_with_pk_buffer(data, signature, pk_buffer)
+        @op_mutex.synchronize do
+          @ml_dsa.verify_with_pk_buffer(data, signature, @pk_buffer)
+        end
       end
 
       # @return [Boolean] true when this key has a private component and can sign.
@@ -124,14 +138,20 @@ module JWT
       # be used for verification. Idempotent — safe to call multiple times,
       # and on verification-only keys.
       #
+      # Thread-safe: serialized on a per-instance mutex shared with
+      # {#sign} and {#verify}, so `destroy!` waits for any in-flight
+      # signing or verification to complete before zeroing the buffer.
+      #
       # @return [true]
       def destroy!
-        if @private_key
-          @private_key.replace("\0" * @private_key.bytesize)
-          @private_key = nil
+        @op_mutex.synchronize do
+          if @private_key
+            @private_key.replace("\0" * @private_key.bytesize)
+            @private_key = nil
+          end
+          @sk_buffer&.clear
+          @sk_buffer = nil
         end
-        @sk_buffer&.clear
-        @sk_buffer = nil
         true
       end
 
@@ -224,14 +244,20 @@ module JWT
       # The PEM carries both the private key and the public key (so the pair
       # can later be re-imported with {.from_pem} alone).
       #
+      # Thread-safe: the read of `@private_key` and the DER build are
+      # serialized against {#destroy!} on the per-instance mutex, so a
+      # concurrent `destroy!` cannot zero the bytes mid-encode.
+      #
       # @return [String] a `-----BEGIN PRIVATE KEY-----` PEM document.
       # @raise [KeyError] if this key has no private component.
       def private_to_pem
-        raise KeyError, "Private key not available" unless @private_key
+        @op_mutex.synchronize do
+          raise KeyError, "Private key not available" unless @private_key
 
-        oid = ALGORITHM_OIDS[@algorithm]
-        secure_der = PqcAsn1::DER.build_pkcs8(oid, @private_key, public_key: @public_key)
-        secure_der.to_pem
+          oid = ALGORITHM_OIDS[@algorithm]
+          secure_der = PqcAsn1::DER.build_pkcs8(oid, @private_key, public_key: @public_key)
+          secure_der.to_pem
+        end
       end
 
       # @api private
@@ -266,12 +292,19 @@ module JWT
 
       private
 
-      def sk_buffer
-        @sk_buffer ||= FFI::MemoryPointer.new(:uint8, @private_key.bytesize).put_bytes(0, @private_key)
-      end
+      # Allocate and populate the FFI buffers for the public key and (when
+      # present) the private key. Done eagerly at construction time to
+      # avoid a thread-safety race on lazy initialization: `@var ||= ...`
+      # is not atomic under MRI, so two threads concurrently calling
+      # {#sign} on a fresh key could each allocate separate
+      # FFI::MemoryPointers holding a copy of the secret key; the loser's
+      # copy then lingers in memory until GC, unzeroed. Eager init makes
+      # each Key hold exactly one copy of each key buffer for its lifetime.
+      def init_ffi_buffers!
+        @pk_buffer = FFI::MemoryPointer.new(:uint8, @public_key.bytesize).put_bytes(0, @public_key)
+        return unless @private_key
 
-      def pk_buffer
-        @pk_buffer ||= FFI::MemoryPointer.new(:uint8, @public_key.bytesize).put_bytes(0, @public_key)
+        @sk_buffer = FFI::MemoryPointer.new(:uint8, @private_key.bytesize).put_bytes(0, @private_key)
       end
 
       def resolve_algorithm(algorithm)
