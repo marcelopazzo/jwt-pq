@@ -115,6 +115,27 @@ jwk.export(include_private: true)
 restored = JWT::PQ::JWK.import(jwk_hash)
 ```
 
+### JWK Set (JWKS)
+
+For publishing multiple verification keys (e.g. during key rotation) or
+consuming a remote JWKS endpoint:
+
+```ruby
+# Producer — publish verification keys on /.well-known/jwks.json
+jwks = JWT::PQ::JWKSet.new([key_current, key_next])
+File.write("jwks.json", jwks.to_json)
+
+# Consumer — resolve the verification key by kid
+jwks = JWT::PQ::JWKSet.import(JSON.parse(fetch_jwks))
+_payload, header = JWT.decode(token, nil, false)        # unverified peek
+key = jwks[header["kid"]] or raise "unknown kid"
+payload, = JWT.decode(token, key, true, algorithms: [header["alg"]])
+```
+
+Members are indexed by their RFC 7638 thumbprint (the same value
+`JWK#export` emits as `kid`). Remember to set the `kid` header when
+signing: `JWT.encode(payload, key, alg, { kid: JWT::PQ::JWK.new(key).thumbprint })`.
+
 ## Algorithms
 
 | Algorithm | NIST Level | Public Key | Signature | JWT `alg` value |
