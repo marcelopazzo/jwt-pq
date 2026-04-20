@@ -184,7 +184,7 @@ jwt-pq targets the current IETF specs for JOSE/COSE post-quantum signatures:
 - [RFC 9864](https://datatracker.ietf.org/doc/rfc9864/) — Fully-Specified Algorithms for JOSE and COSE *(published October 2025)*
 - [FIPS 204](https://csrc.nist.gov/pubs/fips/204/final) — ML-DSA itself *(final)*
 
-Because `draft-ietf-cose-dilithium` is still pre-RFC, the JWK `kty`/`alg` values, header registration, and hybrid concatenation format may change between jwt-pq minor releases. Breaking changes will be called out in [CHANGELOG.md](CHANGELOG.md) and bump the minor version pre-1.0 (or the major version post-1.0).
+See [SPEC.md](SPEC.md) for the full tracked-specs table, the current-draft revisions the shipped `alg`/`kty` values target, the hybrid-mode convention, known divergences, and the compatibility policy for draft transitions and the eventual RFC finalization.
 
 ## Thread safety
 
