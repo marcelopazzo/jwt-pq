@@ -88,7 +88,9 @@ module JWT
         case info.format
         when :spki  then new(algorithm: alg_name, public_key: info.key)
         when :pkcs8 then build_from_pkcs8(info, alg_name)
+        # :nocov: — defensive guard; PqcAsn1::DER.parse_pem only returns :spki or :pkcs8
         else raise KeyError, "Unsupported PEM format: #{info.format}"
+          # :nocov:
         end
       ensure
         info&.key&.wipe! if info&.format == :pkcs8

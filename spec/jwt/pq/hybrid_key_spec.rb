@@ -19,6 +19,11 @@ RSpec.describe JWT::PQ::HybridKey do
         expect(key.hybrid_algorithm).to eq("EdDSA+#{alg_name}")
       end
     end
+
+    it "raises MissingDependencyError when ed25519 is not available" do
+      allow(described_class).to receive(:require).with("ed25519").and_raise(LoadError)
+      expect { described_class.generate }.to raise_error(JWT::PQ::MissingDependencyError, /jwt-eddsa/)
+    end
   end
 
   describe ".new" do

@@ -63,36 +63,10 @@ module JWT
           ml_valid = verification_key.ml_dsa_key.verify(data, ml_sig)
 
           ed_valid && ml_valid
+        # :nocov: — defensive rescue; Key#verify returns bool, does not raise PQ::Error in practice
         rescue JWT::PQ::Error
           false
-        end
-
-        private
-
-        attr_reader :ml_dsa_algorithm
-
-        def resolve_signing_key(key)
-          case key
-          when JWT::PQ::HybridKey
-            raise_sign_error!("Both Ed25519 and ML-DSA private keys required") unless key.private?
-            key
-          else
-            raise_sign_error!(
-              "Expected a JWT::PQ::HybridKey, got #{key.class}. " \
-              "Use JWT::PQ::HybridKey.generate to create a hybrid key."
-            )
-          end
-        end
-
-        def resolve_verification_key(key)
-          case key
-          when JWT::PQ::HybridKey
-            key
-          else
-            raise_verify_error!(
-              "Expected a JWT::PQ::HybridKey, got #{key.class}."
-            )
-          end
+          # :nocov:
         end
 
         register_algorithm(new("EdDSA+ML-DSA-44"))

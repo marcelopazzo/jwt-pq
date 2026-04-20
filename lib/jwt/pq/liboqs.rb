@@ -40,12 +40,14 @@ module JWT
       begin
         ffi_lib lib_path
       rescue LoadError => e
+        # :nocov: — reached only when liboqs is missing at module load
         raise JWT::PQ::LiboqsError,
               "liboqs not found. The vendored library may not have been compiled " \
               "during gem install. Ensure cmake and a C compiler are installed, " \
               "then reinstall: gem install jwt-pq. Alternatively, install liboqs " \
               "manually and set OQS_LIB to the full path. " \
               "Original error: #{e.message}"
+        # :nocov:
       end
 
       # OQS_SIG *OQS_SIG_new(const char *method_name)
