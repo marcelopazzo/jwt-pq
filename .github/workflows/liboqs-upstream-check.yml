@@ -1,0 +1,72 @@
+name: liboqs upstream check
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Read pinned LIBOQS_VERSION
+        id: pinned
+        run: |
+          version=$(grep -E '^LIBOQS_VERSION = "' ext/jwt/pq/extconf.rb | sed -E 's/.*"(.+)".*/\1/')
+          if [ -z "$version" ]; then
+            echo "::error::Could not parse LIBOQS_VERSION from ext/jwt/pq/extconf.rb"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch latest upstream release
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh api repos/open-quantum-safe/liboqs/releases/latest --jq .tag_name)
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Compare and file issue
+        if: steps.pinned.outputs.version != steps.upstream.outputs.version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PINNED: ${{ steps.pinned.outputs.version }}
+          UPSTREAM: ${{ steps.upstream.outputs.version }}
+        run: |
+          title="Upstream liboqs release available: $UPSTREAM (pinned: $PINNED)"
+
+          existing=$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --label "upstream-liboqs" \
+            --search "in:title $UPSTREAM" \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [ -n "$existing" ]; then
+            echo "Issue already open: #$existing"
+            exit 0
+          fi
+
+          body=$(cat <<EOF
+          liboqs $UPSTREAM is available upstream; jwt-pq currently pins $PINNED.
+
+          - Upstream release: https://github.com/open-quantum-safe/liboqs/releases/tag/$UPSTREAM
+          - Security advisories: https://github.com/open-quantum-safe/liboqs/security/advisories
+
+          Per SECURITY.md, bump \`LIBOQS_VERSION\` and \`LIBOQS_SHA256\` in \`ext/jwt/pq/extconf.rb\`, update CHANGELOG, and cut a release. The SLA is 7 days for high-severity advisories, 30 days otherwise.
+          EOF
+          )
+
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$title" \
+            --body "$body" \
+            --label "upstream-liboqs"
