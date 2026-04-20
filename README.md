@@ -134,7 +134,9 @@ payload, = JWT.decode(token, key, true, algorithms: [header["alg"]])
 
 Members are indexed by their RFC 7638 thumbprint (the same value
 `JWK#export` emits as `kid`). Remember to set the `kid` header when
-signing: `JWT.encode(payload, key, alg, { kid: JWT::PQ::JWK.new(key).thumbprint })`.
+signing: `JWT.encode(payload, key, alg, { kid: key.jwk_thumbprint })`.
+`Key#jwk_thumbprint` memoizes the digest, so it's cheap to call
+repeatedly on the same key.
 
 ## Algorithms
 
