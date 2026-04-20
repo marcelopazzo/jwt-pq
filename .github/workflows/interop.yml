@@ -71,3 +71,33 @@ jobs:
 
       - name: Ruby verifies
         run: bundle exec ruby spec/interop/ruby_verify.rb interop_out
+
+  ruby-jwk-python-verify:
+    name: Ruby exports JWK + signs → Python parses JWK + verifies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
+
+      - uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # v1.301.0
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Compile vendored liboqs
+        run: bundle exec rake compile
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dilithium-py
+        run: pip install "dilithium-py==1.4.0"
+
+      - name: Ruby exports JWK + signs
+        run: bundle exec ruby spec/interop/ruby_jwk_sign.rb interop_out
+
+      - name: Python parses JWK + verifies
+        run: python spec/interop/python_jwk_verify.py interop_out
