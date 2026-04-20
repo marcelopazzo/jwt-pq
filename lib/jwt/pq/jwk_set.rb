@@ -142,12 +142,8 @@ module JWT
       # @raise [KeyError] if `source` is not a Hash/String, if the `keys`
       #   field is missing or not an Array, or if any member fails to import.
       def self.import(source)
-        hash =
-          case source
-          when String then JSON.parse(source)
-          when Hash then source
-          else raise KeyError, "Expected Hash or JSON String for JWKS, got #{source.class}"
-          end
+        hash = coerce_to_hash(source)
+        raise KeyError, "Expected Hash for JWKS body, got #{hash.class}" unless hash.is_a?(Hash)
 
         hash = hash.transform_keys(&:to_s)
         raise KeyError, "Missing 'keys' in JWKS" unless hash.key?("keys")
@@ -155,6 +151,45 @@ module JWT
 
         members = hash["keys"].map { |jwk| JWT::PQ::JWK.import(jwk) }
         new(members)
+      end
+
+      # @api private
+      def self.coerce_to_hash(source)
+        case source
+        when String
+          begin
+            ::JSON.parse(source)
+          rescue ::JSON::ParserError => e
+            raise KeyError, "Invalid JSON for JWKS: #{e.message}"
+          end
+        when Hash then source
+        else raise KeyError, "Expected Hash or JSON String for JWKS, got #{source.class}"
+        end
+      end
+      private_class_method :coerce_to_hash
+
+      # Fetch a JWKS from a URL, honouring the process-global cache.
+      #
+      # Convenience wrapper around {Loader#fetch} using
+      # {Loader.default} — the cache is shared across all callers, so
+      # repeated hits on the same URL within `cache_ttl` seconds return
+      # the in-memory set without touching the network.
+      #
+      # See {Loader} for the full option reference (cache TTL, timeouts,
+      # body-size cap, HTTPS enforcement, ETag-based revalidation).
+      #
+      # @example Verify a token using a remote JWKS
+      #   jwks = JWT::PQ::JWKSet.fetch("https://issuer.example/.well-known/jwks.json")
+      #   _payload, header = JWT.decode(token, nil, false)
+      #   key = jwks[header["kid"]] or raise "unknown kid"
+      #   payload, = JWT.decode(token, key, true, algorithms: [header["alg"]])
+      #
+      # @param url [String] absolute JWKS URL.
+      # @return [JWKSet] the parsed set of verification keys.
+      # @raise [JWKSFetchError] on fetch failure (see {Loader#fetch}).
+      # @raise [KeyError] if the fetched body is not a valid JWKS.
+      def self.fetch(url, **)
+        Loader.default.fetch(url, **)
       end
     end
   end

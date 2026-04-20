@@ -138,6 +138,40 @@ signing: `JWT.encode(payload, key, alg, { kid: key.jwk_thumbprint })`.
 `Key#jwk_thumbprint` memoizes the digest, so it's cheap to call
 repeatedly on the same key.
 
+### Fetching a remote JWKS
+
+For consuming a JWKS from an identity provider or sibling service,
+`JWT::PQ::JWKSet.fetch` wraps `Net::HTTP` with a TTL cache and
+`ETag`-based revalidation:
+
+```ruby
+jwks = JWT::PQ::JWKSet.fetch("https://issuer.example/.well-known/jwks.json")
+
+_payload, header = JWT.decode(token, nil, false)
+key = jwks[header["kid"]] or raise "unknown kid"
+payload, = JWT.decode(token, key, true, algorithms: [header["alg"]])
+```
+
+The cache is process-global and keyed by URL, so repeated calls inside
+the TTL window (default: 300 s) return the cached set without touching
+the network. Once the TTL expires, the next call issues a conditional
+GET with `If-None-Match`; a `304 Not Modified` refreshes the cache
+timestamp without re-parsing. Tune via kwargs:
+
+```ruby
+JWT::PQ::JWKSet.fetch(url,
+  cache_ttl: 600,         # seconds; default 300
+  timeout: 3,             # read timeout; default 5
+  open_timeout: 3,        # connect timeout; default 5
+  max_body_bytes: 65_536, # response body cap; default 1 MB
+  allow_http: false)      # reject plain http:// (default)
+```
+
+Defense-in-depth defaults: HTTPS only, redirects rejected, body capped
+at 1 MB, 5 s timeouts. Network/HTTP failures raise
+`JWT::PQ::JWKSFetchError`; malformed JWKS bodies raise
+`JWT::PQ::KeyError`.
+
 ## Algorithms
 
 | Algorithm | NIST Level | Public Key | Signature | JWT `alg` value |
