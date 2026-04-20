@@ -142,12 +142,8 @@ module JWT
       # @raise [KeyError] if `source` is not a Hash/String, if the `keys`
       #   field is missing or not an Array, or if any member fails to import.
       def self.import(source)
-        hash =
-          case source
-          when String then JSON.parse(source)
-          when Hash then source
-          else raise KeyError, "Expected Hash or JSON String for JWKS, got #{source.class}"
-          end
+        hash = coerce_to_hash(source)
+        raise KeyError, "Expected Hash for JWKS body, got #{hash.class}" unless hash.is_a?(Hash)
 
         hash = hash.transform_keys(&:to_s)
         raise KeyError, "Missing 'keys' in JWKS" unless hash.key?("keys")
@@ -156,6 +152,21 @@ module JWT
         members = hash["keys"].map { |jwk| JWT::PQ::JWK.import(jwk) }
         new(members)
       end
+
+      # @api private
+      def self.coerce_to_hash(source)
+        case source
+        when String
+          begin
+            ::JSON.parse(source)
+          rescue ::JSON::ParserError => e
+            raise KeyError, "Invalid JSON for JWKS: #{e.message}"
+          end
+        when Hash then source
+        else raise KeyError, "Expected Hash or JSON String for JWKS, got #{source.class}"
+        end
+      end
+      private_class_method :coerce_to_hash
     end
   end
 end
