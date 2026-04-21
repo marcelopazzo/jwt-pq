@@ -288,6 +288,17 @@ module JWT
         new(algorithm: alg_name, public_key: info.public_key, private_key: sk_bytes)
       end
 
+      # @api private
+      #
+      # Build a GC finalizer that zeros the given FFI buffer before it is
+      # freed. Defined at the class level so the returned proc closes over
+      # the buffer only — capturing `self` would keep the Key alive forever
+      # and the finalizer would never run. Calling `.clear` on an already
+      # zeroed buffer (after an explicit {#destroy!}) is a safe no-op.
+      private_class_method def self.finalizer_for(sk_buffer)
+        proc { sk_buffer.clear }
+      end
+
       private_class_method :resolve_algorithm, :extract_secure_bytes, :resolve_oid!, :build_from_pkcs8
 
       private
@@ -300,11 +311,18 @@ module JWT
       # FFI::MemoryPointers holding a copy of the secret key; the loser's
       # copy then lingers in memory until GC, unzeroed. Eager init makes
       # each Key hold exactly one copy of each key buffer for its lifetime.
+      #
+      # A GC finalizer zeros `@sk_buffer` before FFI releases its memory,
+      # so a forgotten {#destroy!} cannot leak secret key bytes to the
+      # allocator. {#destroy!} remains the preferred explicit path; the
+      # finalizer is a last-resort safety net. The finalizer closes over
+      # the buffer only — not `self` — so it does not pin the Key from GC.
       def init_ffi_buffers!
         @pk_buffer = FFI::MemoryPointer.new(:uint8, @public_key.bytesize).put_bytes(0, @public_key)
         return unless @private_key
 
         @sk_buffer = FFI::MemoryPointer.new(:uint8, @private_key.bytesize).put_bytes(0, @private_key)
+        ObjectSpace.define_finalizer(self, self.class.send(:finalizer_for, @sk_buffer))
       end
 
       def resolve_algorithm(algorithm)

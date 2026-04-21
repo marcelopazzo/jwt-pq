@@ -126,4 +126,44 @@ RSpec.describe JWT::PQ::Key do
       expect(pub_key.destroy!).to be true
     end
   end
+
+  describe ".finalizer_for (GC safety net)" do
+    it "returns a proc that zeros the given FFI buffer when called" do
+      size = 32
+      buffer = FFI::MemoryPointer.new(:uint8, size).put_bytes(0, "A" * size)
+      expect(buffer.read_bytes(size)).to eq("A" * size)
+
+      finalizer = described_class.send(:finalizer_for, buffer)
+      expect(finalizer).to be_a(Proc)
+
+      finalizer.call
+
+      expect(buffer.read_bytes(size)).to eq("\0" * size)
+    end
+
+    it "is idempotent — calling the proc on an already-zeroed buffer is a no-op" do
+      size = 16
+      buffer = FFI::MemoryPointer.new(:uint8, size).put_bytes(0, "B" * size)
+      finalizer = described_class.send(:finalizer_for, buffer)
+
+      finalizer.call
+      expect(buffer.read_bytes(size)).to eq("\0" * size)
+
+      expect { finalizer.call }.not_to raise_error
+      expect(buffer.read_bytes(size)).to eq("\0" * size)
+    end
+
+    it "exposes finalizer_for as a private class method" do
+      expect(described_class.private_methods).to include(:finalizer_for)
+      expect { described_class.finalizer_for(nil) }
+        .to raise_error(NoMethodError, /private method/)
+    end
+
+    it "does not register a finalizer on verification-only keys" do
+      full = described_class.generate(:ml_dsa_44)
+      pub_only = described_class.from_public_key(:ml_dsa_44, full.public_key)
+      # Verification-only keys have no @sk_buffer, so no finalizer is needed.
+      expect(pub_only.instance_variable_get(:@sk_buffer)).to be_nil
+    end
+  end
 end
