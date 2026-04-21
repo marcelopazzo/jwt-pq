@@ -13,6 +13,11 @@ RSpec.describe JWT::PQ::JWKSet::Loader do
     resp.instance_variable_set(:@body, body) if body
     resp.instance_variable_set(:@read, true)
     headers.each { |k, v| resp[k] = v }
+    if body
+      resp.define_singleton_method(:read_body) do |&block|
+        block ? block.call(body) : body
+      end
+    end
     resp
   end
 
@@ -32,8 +37,10 @@ RSpec.describe JWT::PQ::JWKSet::Loader do
     build_response(Net::HTTPInternalServerError, "500", "Internal Server Error")
   end
 
+  # Stub perform_request so it yields the response to the streaming
+  # block, mirroring the real Net::HTTP block form.
   def stub_http(response)
-    allow(loader).to receive(:perform_request).and_return(response)
+    allow(loader).to receive(:perform_request).and_yield(response)
   end
 
   describe "#fetch on first hit" do
@@ -150,6 +157,31 @@ RSpec.describe JWT::PQ::JWKSet::Loader do
       stub_http(ok(body: "x" * 2048))
       expect { loader.fetch(url, max_body_bytes: 1024) }
         .to raise_error(JWT::PQ::JWKSFetchError, /body too large/)
+    end
+
+    it "enforces the cap during streaming read when Content-Length is absent" do
+      # Server without Content-Length delivers the body in chunks. The
+      # cap must trip on the boundary chunk, before the full body is
+      # buffered in memory. A post-read check would let all chunks be
+      # allocated; this spec verifies the in-stream check fires and the
+      # iterator never reaches chunks past the cap.
+      response = build_response(Net::HTTPOK, "200", "OK")
+      yielded = []
+
+      response.define_singleton_method(:read_body) do |&block|
+        4.times do |i|
+          yielded << i
+          block.call("x" * 400)
+        end
+      end
+      allow(loader).to receive(:perform_request).and_yield(response)
+
+      expect { loader.fetch(url, max_body_bytes: 1024) }
+        .to raise_error(JWT::PQ::JWKSFetchError, /exceeded 1024 bytes during streaming read/)
+
+      # Chunks 0, 1, 2 are consumed (800+400 > 1024 trips on chunk 2).
+      # Chunk 3 must never be yielded.
+      expect(yielded).to eq([0, 1, 2])
     end
   end
 

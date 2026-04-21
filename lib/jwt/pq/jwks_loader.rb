@@ -65,6 +65,12 @@ module JWT
         # Fetch the JWKS at `url`, honouring the cache if the entry is
         # still fresh.
         #
+        # **URL provenance.** The URL is used verbatim: `Loader#fetch`
+        # does not resolve DNS, inspect the target IP, or block private,
+        # link-local, or cloud-metadata addresses. Callers are responsible
+        # for ensuring the URL comes from a trusted source (e.g. a pinned
+        # issuer configuration, not untrusted user input) to avoid SSRF.
+        #
         # @param url [String] the absolute URL of the JWKS document.
         # @param cache_ttl [Integer] seconds the cached set is considered
         #   fresh. Default: 300.
@@ -141,8 +147,11 @@ module JWT
         end
 
         def do_http_get(uri, etag, timeout, open_timeout, max_body_bytes)
-          response = perform_request(uri, etag, timeout, open_timeout)
-          handle_response(response, max_body_bytes)
+          result = nil
+          perform_request(uri, etag, timeout, open_timeout) do |response|
+            result = handle_response(response, max_body_bytes)
+          end
+          result
         rescue Net::OpenTimeout, Net::ReadTimeout => e
           raise JWKSFetchError, "Timeout fetching JWKS from #{uri}: #{e.message}"
         rescue SocketError, Errno::ECONNREFUSED, Errno::EHOSTUNREACH,
@@ -151,7 +160,7 @@ module JWT
         end
 
         # :nocov: — real HTTP path; unit tests stub this method.
-        def perform_request(uri, etag, timeout, open_timeout)
+        def perform_request(uri, etag, timeout, open_timeout, &)
           http = Net::HTTP.new(uri.host, uri.port)
           http.use_ssl = (uri.scheme == "https")
           http.read_timeout = timeout
@@ -161,7 +170,7 @@ module JWT
           req["Accept"] = "application/jwk-set+json, application/json"
           req["If-None-Match"] = etag if etag
 
-          http.request(req)
+          http.request(req, &)
         end
         # :nocov:
 
@@ -170,8 +179,8 @@ module JWT
           when Net::HTTPNotModified
             { not_modified: true }
           when Net::HTTPSuccess
-            validate_body_size!(response, max_body_bytes)
-            { not_modified: false, body: response.body, etag: response["ETag"] }
+            body = read_body_with_cap!(response, max_body_bytes)
+            { not_modified: false, body: body, etag: response["ETag"] }
           when Net::HTTPRedirection
             raise JWKSFetchError,
                   "Refusing to follow redirect to #{response["Location"].inspect}"
@@ -180,18 +189,27 @@ module JWT
           end
         end
 
-        def validate_body_size!(response, max_body_bytes)
+        # Stream the response body into memory while enforcing the cap
+        # on every chunk. A server that omits `Content-Length` cannot
+        # force unbounded allocation: the accumulator is checked before
+        # and after each append, and the connection is abandoned the
+        # moment the cap is exceeded.
+        def read_body_with_cap!(response, max_body_bytes)
           declared = response["Content-Length"]&.to_i
           if declared && declared > max_body_bytes
             raise JWKSFetchError,
                   "JWKS body too large: Content-Length #{declared} > #{max_body_bytes}"
           end
 
-          actual = response.body&.bytesize || 0
-          return unless actual > max_body_bytes
-
-          raise JWKSFetchError,
-                "JWKS body too large: #{actual} bytes > #{max_body_bytes}"
+          buffer = String.new(capacity: declared || 0)
+          response.read_body do |chunk|
+            if buffer.bytesize + chunk.bytesize > max_body_bytes
+              raise JWKSFetchError,
+                    "JWKS body too large: exceeded #{max_body_bytes} bytes during streaming read"
+            end
+            buffer << chunk
+          end
+          buffer
         end
 
         def now
