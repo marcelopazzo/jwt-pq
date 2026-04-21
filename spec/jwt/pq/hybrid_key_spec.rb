@@ -96,5 +96,34 @@ RSpec.describe JWT::PQ::HybridKey do
       )
       expect(verify_key.destroy!).to be true
     end
+
+    it "zeros the Ed25519 seed (@seed) in place" do
+      ed_sk = Ed25519::SigningKey.generate
+      hybrid = described_class.new(
+        ed25519: ed_sk,
+        ml_dsa: JWT::PQ::Key.generate(:ml_dsa_44)
+      )
+
+      hybrid.destroy!
+
+      expect(ed_sk.to_bytes).to eq("\0" * 32)
+    end
+
+    it "zeros the Ed25519 @keypair (seed || public_key) in place" do
+      ed_sk = Ed25519::SigningKey.generate
+      hybrid = described_class.new(
+        ed25519: ed_sk,
+        ml_dsa: JWT::PQ::Key.generate(:ml_dsa_44)
+      )
+      # Capture the internal keypair String before destroy so we can verify
+      # the live object (attr_reader returns the ivar by reference) got wiped.
+      keypair_ref = ed_sk.keypair
+      expect(keypair_ref.bytesize).to eq(64)
+
+      hybrid.destroy!
+
+      expect(keypair_ref).to eq("\0" * 64)
+      expect(ed_sk.keypair).to eq("\0" * 64)
+    end
   end
 end

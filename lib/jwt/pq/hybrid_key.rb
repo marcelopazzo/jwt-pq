@@ -132,6 +132,13 @@ module JWT
       # {#sign} will block until `destroy!` completes and then raise
       # `KeyError`, never observing a half-destroyed state.
       #
+      # Ed25519 wipe: `Ed25519::SigningKey` stores the private seed in two
+      # separate Strings — `@seed` (32 bytes) returned by `#to_bytes`, and
+      # `@keypair` (64 bytes = `seed || public_key`) returned by `#keypair`.
+      # Both are `attr_reader`-backed and hand out the internal String by
+      # reference, so we must zero both in place — wiping only `@seed`
+      # leaves the first 32 bytes of `@keypair` holding the seed until GC.
+      #
       # @return [true]
       def destroy!
         @op_mutex.synchronize do
@@ -139,6 +146,8 @@ module JWT
           if @ed25519_signing_key
             seed = @ed25519_signing_key.to_bytes
             seed.replace("\0" * seed.bytesize)
+            keypair = @ed25519_signing_key.keypair
+            keypair.replace("\0" * keypair.bytesize)
             @ed25519_signing_key = nil
           end
         end
