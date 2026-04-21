@@ -4,7 +4,7 @@ This document records which external specifications each jwt-pq release
 targets, what its current divergences are (if any), and the compatibility
 policy for drafts in flight.
 
-## Tracked specifications — jwt-pq 0.4.x
+## Tracked specifications — jwt-pq 0.5.x
 
 Last reviewed: **2026-04-20**.
 

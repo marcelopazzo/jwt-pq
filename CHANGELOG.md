@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-20
+
+### Added
+
+- `JWT::PQ::JWKSet` for RFC 7517 §5 JWK Sets — parse, serialize, lookup by `kid`, and enumerate keys (#22)
+- Remote JWKS fetcher with TTL cache and ETag/If-None-Match revalidation for interop with identity providers (#24)
+- YARD documentation across the public API surface (`@param`, `@return`, `@raise`, `@example`); `@api private` markers on internals (#21)
+- `SPEC.md` tracking the IETF drafts jwt-pq targets (JOSE/COSE PQC) and the gem's compatibility policy (#28)
+- Fuzz-style tests hardening `JWK` and `JWKSet` import against malformed input (#23)
+- Ruby→Python JWK cross-interop CI job against an independent ML-DSA / FIPS 204 implementation (#19)
+- Thumbprint test verifying `JWK#thumbprint` matches an independent RFC 7638 computation (#18)
+- Weekly liboqs upstream release monitor workflow (#17)
+
+### Fixed
+
+- **Thread safety**: `Key#sign` / `#verify` / `#destroy!` now use a per-instance mutex instead of a class-level one, restoring real parallelism across keys while keeping a single key safe under concurrent use (#25)
+- **Thread safety**: `MlDsa` handle-cache reads are now always synchronized — the previous double-checked pattern relied on Ruby memory-model guarantees that are not portable across implementations (#31)
+- `JWK#thumbprint` now uses `JSON.generate` for the canonical member dictionary instead of string interpolation, eliminating a class of subtle escaping bugs (#27)
+- `EdDSA+ML-DSA` hybrid `verify` no longer short-circuits between the two component verifications — both are always evaluated so neither timing nor error-path behavior leaks which half failed (#26)
+- `HybridKey#destroy!` now wipes the underlying Ed25519 `@keypair` in addition to the ML-DSA half; FFI secret-key buffers are auto-zeroed on GC as a defense-in-depth finalizer (#32)
+- `JWKSet` remote fetcher enforces the body cap during streaming read (not just post-hoc) and documents the URL-provenance contract callers must honor (#33)
+
+### Changed
+
+- `pqc_asn1` dependency tightened to `~> 0.1.0` (patch-only) so a future 0.2.0 with potential API breakage does not silently upgrade (#29)
+- `bin/` directory no longer packaged into the published gem (smaller install footprint) (#29)
+
+### Dependencies
+
+- Bump `ruby/setup-ruby` from 1.301.0 to 1.302.0 (#30)
+
 ## [0.4.0] - 2026-04-19
 
 ### Added
@@ -103,7 +134,8 @@ Throughput on Ruby 3.4.6, macOS x86_64, liboqs 0.15.0 (benchmark-ips, 2s warmup 
   - Optional dependency on jwt-eddsa / ed25519
 - Error classes: `LiboqsError`, `KeyError`, `SignatureError`, `MissingDependencyError`
 
-[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.1.0...v0.2.0
