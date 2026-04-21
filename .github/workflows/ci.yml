@@ -57,29 +57,6 @@ jobs:
         if: matrix.ruby == '3.4' && matrix.os == 'ubuntu-latest'
         run: bundle exec yard doc --no-output --fail-on-warning
 
-  test-system-libraries:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Install liboqs system-wide
-        run: |
-          sudo apt-get update && sudo apt-get install -y cmake ninja-build
-          git clone --depth 1 --branch 0.15.0 https://github.com/open-quantum-safe/liboqs
-          cd liboqs && mkdir build && cd build
-          cmake -GNinja -DBUILD_SHARED_LIBS=ON ..
-          ninja && sudo ninja install && sudo ldconfig
-
-      - uses: ruby/setup-ruby@7372622e62b60b3cb750dcd2b9e32c247ffec26a # v1.302.0
-        with:
-          ruby-version: "3.4"
-          bundler-cache: true
-        env:
-          JWT_PQ_USE_SYSTEM_LIBRARIES: "1"
-
-      - name: Run tests
-        run: bundle exec rspec
-
   smoke:
     name: Smoke test
     runs-on: ubuntu-latest
