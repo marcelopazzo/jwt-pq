@@ -17,7 +17,7 @@ module JWT
       @sign_handles_mutex = Mutex.new
 
       def self.sign_handle(algorithm)
-        @sign_handles[algorithm] || @sign_handles_mutex.synchronize do
+        @sign_handles_mutex.synchronize do
           @sign_handles[algorithm] ||= begin
             h = LibOQS.OQS_SIG_new(algorithm)
             raise LiboqsError, "Failed to initialize #{algorithm}" if h.null?
@@ -31,7 +31,7 @@ module JWT
       @verify_handles_mutex = Mutex.new
 
       def self.verify_handle(algorithm)
-        @verify_handles[algorithm] || @verify_handles_mutex.synchronize do
+        @verify_handles_mutex.synchronize do
           @verify_handles[algorithm] ||= begin
             h = LibOQS.OQS_SIG_new(algorithm)
             raise LiboqsError, "Failed to initialize #{algorithm}" if h.null?
