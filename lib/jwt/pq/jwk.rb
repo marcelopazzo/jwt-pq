@@ -98,6 +98,27 @@ module JWT
         end
       end
 
+      # Whether a JWK hash looks like something this gem can import:
+      # a JSON object with `kty == "AKP"` and a supported ML-DSA `alg`.
+      #
+      # Used by {JWT::PQ::JWKSet.import} to tolerate mixed JWKSes during
+      # incremental PQ rollouts — a `/.well-known/jwks.json` carrying a
+      # blend of RSA/EdDSA and ML-DSA members will not raise on the
+      # classical entries. It does **not** validate the remaining fields
+      # (`pub`, `priv`, base64url-ness, key sizes); a recognized-but-
+      # malformed member still raises from {.import}, since that signals
+      # a real bug in the emitter rather than an interop boundary.
+      #
+      # @api private
+      # @param jwk_hash [Object] candidate JWK.
+      # @return [Boolean] true iff the member is in this gem's scope.
+      def self.recognized?(jwk_hash)
+        return false unless jwk_hash.is_a?(Hash)
+
+        jwk = normalize_keys(jwk_hash)
+        jwk["kty"] == KTY && ALGORITHMS.include?(jwk["alg"])
+      end
+
       # Compute the JWK Thumbprint (RFC 7638) used as `kid`.
       #
       # Delegates to {JWT::PQ::Key#jwk_thumbprint}, which memoizes the

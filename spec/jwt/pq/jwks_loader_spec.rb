@@ -144,6 +144,30 @@ RSpec.describe JWT::PQ::JWKSet::Loader do
       expect { loader.fetch(url) }
         .to raise_error(JWT::PQ::KeyError)
     end
+
+    it "tolerates mixed classical+PQ JWKS by default (skips unknown kty)" do
+      mixed = JSON.generate(
+        keys: [
+          { kty: "RSA", kid: "rsa-1", n: "...", e: "AQAB" },
+          JWT::PQ::JWK.new(key).export
+        ]
+      )
+      stub_http(ok(body: mixed))
+
+      set = loader.fetch(url)
+      expect(set.size).to eq(1)
+      expect(set[key.jwk_thumbprint]).not_to be_nil
+    end
+
+    it "forwards strict: to JWKSet.import so unknown kty raises" do
+      mixed = JSON.generate(
+        keys: [{ kty: "RSA", kid: "rsa-1", n: "...", e: "AQAB" }, JWT::PQ::JWK.new(key).export]
+      )
+      stub_http(ok(body: mixed))
+
+      expect { loader.fetch(url, strict: true) }
+        .to raise_error(JWT::PQ::KeyError, /kty/)
+    end
   end
 
   describe "body size enforcement" do

@@ -80,6 +80,9 @@ module JWT
         #   Default: 1 MB.
         # @param allow_http [Boolean] allow plain `http://` URLs. Default:
         #   false (strongly recommended for production).
+        # @param strict [Boolean] forwarded to {JWKSet.import}: if true,
+        #   members with unknown `kty`/`alg` raise instead of being
+        #   skipped. Default: false.
         # @return [JWKSet] the parsed set of verification keys.
         # @raise [JWKSFetchError] on network error, timeout, non-2xx
         #   response, oversized body, redirect, or non-HTTPS URL.
@@ -89,7 +92,8 @@ module JWT
                   timeout: DEFAULT_TIMEOUT,
                   open_timeout: DEFAULT_OPEN_TIMEOUT,
                   max_body_bytes: DEFAULT_MAX_BODY_BYTES,
-                  allow_http: false)
+                  allow_http: false,
+                  strict: false)
           uri = validate_uri!(url, allow_http: allow_http)
 
           fresh = fresh_entry(url, cache_ttl)
@@ -102,7 +106,7 @@ module JWT
             @mutex.synchronize { existing.fetched_at = now }
             existing.jwks
           else
-            jwks = JWKSet.import(result[:body])
+            jwks = JWKSet.import(result[:body], strict: strict)
             @mutex.synchronize do
               @cache[url] = CacheEntry.new(jwks, result[:etag], now)
             end
