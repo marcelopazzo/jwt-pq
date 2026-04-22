@@ -127,8 +127,20 @@ module JWT
 
       # Import a JWKS from a Hash or JSON string.
       #
-      # Each member is reconstructed via {JWT::PQ::JWK.import}; malformed
-      # members raise {KeyError}.
+      # By default, members this gem cannot represent — unknown `kty`
+      # (e.g. `RSA`, `EC`, `OKP`) or unknown `alg` within `kty: "AKP"`
+      # (e.g. a future ML-DSA parameter set or a sibling PQ algorithm not
+      # yet implemented here) — are silently dropped. This keeps the set
+      # usable during an incremental PQ rollout, where a single
+      # `/.well-known/jwks.json` carries both classical and ML-DSA keys.
+      #
+      # Members that **are** in scope (`kty: "AKP"` with a supported
+      # `alg`) but malformed — missing `pub`, wrong field type, invalid
+      # base64url, wrong key size — still raise {KeyError}: that is a
+      # real bug in the emitter, not an interop boundary.
+      #
+      # Pass `strict: true` to restore the previous fail-fast behaviour,
+      # where any unknown `kty`/`alg` raises.
       #
       # ML-DSA public keys are ~1.3–2.6 KB each, so a JWKS with N keys is
       # at least N × ~2 KB. When ingesting untrusted JWKS payloads (e.g.
@@ -138,10 +150,14 @@ module JWT
       #
       # @param source [Hash, String] a JWKS hash or JSON string with a
       #   `"keys"` array.
-      # @return [JWKSet] a new set with all parsed members.
+      # @param strict [Boolean] if true, unknown `kty`/`alg` members
+      #   raise {KeyError} instead of being skipped. Default: false.
+      # @return [JWKSet] a new set with the parsed in-scope members.
       # @raise [KeyError] if `source` is not a Hash/String, if the `keys`
-      #   field is missing or not an Array, or if any member fails to import.
-      def self.import(source)
+      #   field is missing or not an Array, if an in-scope member is
+      #   malformed, or (only when `strict: true`) if any member has an
+      #   unknown `kty`/`alg`.
+      def self.import(source, strict: false)
         hash = coerce_to_hash(source)
         raise KeyError, "Expected Hash for JWKS body, got #{hash.class}" unless hash.is_a?(Hash)
 
@@ -149,9 +165,17 @@ module JWT
         raise KeyError, "Missing 'keys' in JWKS" unless hash.key?("keys")
         raise KeyError, "'keys' must be an Array" unless hash["keys"].is_a?(Array)
 
-        members = hash["keys"].map { |jwk| JWT::PQ::JWK.import(jwk) }
+        members = hash["keys"].filter_map { |jwk| import_member(jwk, strict: strict) }
         new(members)
       end
+
+      # @api private
+      def self.import_member(jwk, strict:)
+        return nil unless strict || JWT::PQ::JWK.recognized?(jwk)
+
+        JWT::PQ::JWK.import(jwk)
+      end
+      private_class_method :import_member
 
       # @api private
       def self.coerce_to_hash(source)
@@ -183,6 +207,10 @@ module JWT
       #   _payload, header = JWT.decode(token, nil, false)
       #   key = jwks[header["kid"]] or raise "unknown kid"
       #   payload, = JWT.decode(token, key, true, algorithms: [header["alg"]])
+      #
+      # By default, members with unknown `kty`/`alg` in the fetched
+      # body are skipped (see {.import}); pass `strict: true` to make
+      # them raise.
       #
       # @param url [String] absolute JWKS URL.
       # @return [JWKSet] the parsed set of verification keys.

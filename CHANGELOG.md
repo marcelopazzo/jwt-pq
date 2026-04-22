@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Ruby 4.0 officially supported (CI matrix now covers 3.2, 3.3, 3.4, and 4.0 on Linux and macOS)
 
+### Changed
+
+- `JWT::PQ::JWKSet.import` (and `JWKSet.fetch`) now tolerates mixed JWKSes: members with unknown `kty` (e.g. RSA, EC, OKP) or unsupported `alg` within `kty: "AKP"` are silently skipped instead of aborting the whole set — enabling incremental PQ rollouts where a single `/.well-known/jwks.json` carries both classical and ML-DSA keys. Pass `strict: true` to restore the previous fail-fast behaviour. Recognized-but-malformed AKP members still raise `KeyError` (#34)
+
 ## [0.5.1] - 2026-04-22
 
 ### Changed
