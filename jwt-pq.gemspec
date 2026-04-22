@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
     "source_code_uri" => github_uri,
     "changelog_uri" => "#{github_uri}/blob/main/CHANGELOG.md",
     "bug_tracker_uri" => "#{github_uri}/issues",
-    "documentation_uri" => "https://rubydoc.info/gems/jwt-pq",
+    "documentation_uri" => "https://docs.jwt-pq.marcelopazzo.com",
     "rubygems_mfa_required" => "true"
   }
 
