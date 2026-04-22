@@ -211,9 +211,71 @@ RSpec.describe JWT::PQ::JWKSet do
         .to raise_error(JWT::PQ::KeyError, /must be an Array/)
     end
 
-    it "propagates JWK-level errors from members" do
-      expect { described_class.import({ "keys" => [{ "kty" => "RSA" }] }) }
+    it "propagates JWK-level errors from in-scope but malformed members" do
+      malformed = original.export
+      malformed[:keys].first.delete(:pub)
+
+      expect { described_class.import(malformed) }
+        .to raise_error(JWT::PQ::KeyError, /pub/)
+    end
+  end
+
+  describe ".import with mixed JWKS (issue #34)" do
+    let(:rsa_jwk)   { { "kty" => "RSA", "kid" => "rsa-1", "n" => "...", "e" => "AQAB" } }
+    let(:ec_jwk)    { { "kty" => "EC", "kid" => "ec-1", "crv" => "P-256", "x" => "...", "y" => "..." } }
+    let(:okp_jwk)   { { "kty" => "OKP", "kid" => "ed-1", "crv" => "Ed25519", "x" => "..." } }
+    let(:akp_jwk_a) { JWT::PQ::JWK.new(key_a).export }
+    let(:akp_jwk_b) { JWT::PQ::JWK.new(key_b).export }
+
+    it "skips unknown kty members and keeps the AKP ones" do
+      mixed = { "keys" => [rsa_jwk, akp_jwk_a, ec_jwk, akp_jwk_b, okp_jwk] }
+      set = described_class.import(mixed)
+      expect(set.size).to eq(2)
+      expect(set[kid_a]).not_to be_nil
+      expect(set[kid_b]).not_to be_nil
+    end
+
+    it "skips unknown alg within kty: AKP (forward-compat for future PQ algs)" do
+      future_akp = { "kty" => "AKP", "alg" => "ML-DSA-99", "pub" => "...", "kid" => "future" }
+      set = described_class.import({ "keys" => [future_akp, akp_jwk_a] })
+      expect(set.size).to eq(1)
+      expect(set[kid_a]).not_to be_nil
+    end
+
+    it "skips non-Hash members silently" do
+      set = described_class.import({ "keys" => [nil, "junk", 42, akp_jwk_a] })
+      expect(set.size).to eq(1)
+    end
+
+    it "returns an empty set when no members are in scope" do
+      set = described_class.import({ "keys" => [rsa_jwk, ec_jwk, okp_jwk] })
+      expect(set).to be_empty
+    end
+
+    it "still raises for in-scope members with malformed payloads" do
+      bad_akp = akp_jwk_a.dup
+      bad_akp[:pub] = "***not-base64url***"
+
+      expect { described_class.import({ "keys" => [rsa_jwk, bad_akp] }) }
+        .to raise_error(JWT::PQ::KeyError, /base64url/)
+    end
+
+    it "strict: true restores fail-fast on unknown kty" do
+      expect { described_class.import({ "keys" => [rsa_jwk, akp_jwk_a] }, strict: true) }
         .to raise_error(JWT::PQ::KeyError, /kty/)
+    end
+
+    it "strict: true raises on unknown alg within AKP" do
+      future_akp = { "kty" => "AKP", "alg" => "ML-DSA-99", "pub" => "..." }
+      expect { described_class.import({ "keys" => [future_akp] }, strict: true) }
+        .to raise_error(JWT::PQ::KeyError, /algorithm/)
+    end
+
+    it "accepts a JSON string body with mixed keys" do
+      mixed_json = JSON.generate({ keys: [rsa_jwk, akp_jwk_a] })
+      set = described_class.import(mixed_json)
+      expect(set.size).to eq(1)
+      expect(set[kid_a]).not_to be_nil
     end
   end
 

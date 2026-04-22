@@ -138,6 +138,29 @@ signing: `JWT.encode(payload, key, alg, { kid: key.jwk_thumbprint })`.
 `Key#jwk_thumbprint` memoizes the digest, so it's cheap to call
 repeatedly on the same key.
 
+#### Mixed classical + PQ JWKSes
+
+`JWKSet.import` (and `JWKSet.fetch`) tolerates JWKSes that mix this
+gem's `ML-DSA-{44,65,87}` keys with classical RSA/EC/EdDSA entries or
+future PQ algorithms — members with an unknown `kty` or an
+unsupported `alg` within `kty: "AKP"` are silently dropped. This is
+the realistic shape of an incremental PQ rollout, where an issuer
+publishes both classical and ML-DSA keys on the same
+`/.well-known/jwks.json`.
+
+Members that **do** have `kty: "AKP"` with a supported `alg` but are
+otherwise malformed (missing `pub`, invalid base64url, wrong key size,
+etc.) still raise `JWT::PQ::KeyError` — that is a real bug in the
+emitter, not an interop boundary.
+
+Pass `strict: true` to restore fail-fast behaviour on any unknown
+`kty`/`alg`:
+
+```ruby
+JWT::PQ::JWKSet.import(body, strict: true)
+JWT::PQ::JWKSet.fetch(url, strict: true)
+```
+
 ### Fetching a remote JWKS
 
 For consuming a JWKS from an identity provider or sibling service,
