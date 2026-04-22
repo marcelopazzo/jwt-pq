@@ -7,13 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-22
+
 ### Added
 
-- Ruby 4.0 officially supported (CI matrix now covers 3.2, 3.3, 3.4, and 4.0 on Linux and macOS)
+- Ruby 4.0 officially supported (CI matrix now covers 3.2, 3.3, 3.4, and 4.0 on Linux and macOS) (#40)
+- YARD reference site: `docs.yml` workflow publishes the generated docs to GitHub Pages on every tag push, served at `docs.jwt-pq.marcelopazzo.com` (#41)
 
 ### Changed
 
-- `JWT::PQ::JWKSet.import` (and `JWKSet.fetch`) now tolerates mixed JWKSes: members with unknown `kty` (e.g. RSA, EC, OKP) or unsupported `alg` within `kty: "AKP"` are silently skipped instead of aborting the whole set — enabling incremental PQ rollouts where a single `/.well-known/jwks.json` carries both classical and ML-DSA keys. Pass `strict: true` to restore the previous fail-fast behaviour. Recognized-but-malformed AKP members still raise `KeyError` (#34)
+- `JWT::PQ::JWKSet.import` (and `JWKSet.fetch`) now tolerates mixed JWKSes: members with unknown `kty` (e.g. RSA, EC, OKP) or unsupported `alg` within `kty: "AKP"` are silently skipped instead of aborting the whole set — enabling incremental PQ rollouts where a single `/.well-known/jwks.json` carries both classical and ML-DSA keys. Pass `strict: true` to restore the previous fail-fast behaviour. Recognized-but-malformed AKP members still raise `KeyError` (#39)
 
 ## [0.5.1] - 2026-04-22
 
@@ -148,7 +151,8 @@ Throughput on Ruby 3.4.6, macOS x86_64, liboqs 0.15.0 (benchmark-ips, 2s warmup 
   - Optional dependency on jwt-eddsa / ed25519
 - Error classes: `LiboqsError`, `KeyError`, `SignatureError`, `MissingDependencyError`
 
-[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/marcelopazzo/jwt-pq/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.3.0...v0.4.0
