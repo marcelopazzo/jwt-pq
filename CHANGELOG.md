@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-04-22
+
+### Changed
+
+- Gemspec `homepage` now points to `https://jwt-pq.marcelopazzo.com` (the live verifier and docs site); `source_code_uri`, `changelog_uri`, and `bug_tracker_uri` remain on GitHub (#37)
+
 ## [0.5.0] - 2026-04-20
 
 ### Added
@@ -134,7 +140,8 @@ Throughput on Ruby 3.4.6, macOS x86_64, liboqs 0.15.0 (benchmark-ips, 2s warmup 
   - Optional dependency on jwt-eddsa / ed25519
 - Error classes: `LiboqsError`, `KeyError`, `SignatureError`, `MissingDependencyError`
 
-[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/marcelopazzo/jwt-pq/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.2.0...v0.3.0
