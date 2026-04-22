@@ -12,14 +12,16 @@ Gem::Specification.new do |spec|
   spec.description = "Adds ML-DSA-44, ML-DSA-65, and ML-DSA-87 post-quantum signature " \
                      "algorithms to the ruby-jwt ecosystem, with optional hybrid " \
                      "EdDSA + ML-DSA mode. Uses liboqs via FFI."
-  spec.homepage = "https://github.com/marcelopazzo/jwt-pq"
+  spec.homepage = "https://jwt-pq.marcelopazzo.com"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2"
 
+  github_uri = "https://github.com/marcelopazzo/jwt-pq"
   spec.metadata = {
-    "source_code_uri" => spec.homepage,
-    "changelog_uri" => "#{spec.homepage}/blob/main/CHANGELOG.md",
-    "bug_tracker_uri" => "#{spec.homepage}/issues",
+    "homepage_uri" => spec.homepage,
+    "source_code_uri" => github_uri,
+    "changelog_uri" => "#{github_uri}/blob/main/CHANGELOG.md",
+    "bug_tracker_uri" => "#{github_uri}/issues",
     "documentation_uri" => "https://rubydoc.info/gems/jwt-pq",
     "rubygems_mfa_required" => "true"
   }
