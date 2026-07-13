@@ -23,7 +23,7 @@ jobs:
       - name: Install liboqs system-wide
         run: |
           sudo apt-get update && sudo apt-get install -y cmake ninja-build
-          git clone --depth 1 --branch 0.15.0 https://github.com/open-quantum-safe/liboqs
+          git clone --depth 1 --branch 0.16.0 https://github.com/open-quantum-safe/liboqs
           cd liboqs && mkdir build && cd build
           cmake -GNinja -DBUILD_SHARED_LIBS=ON ..
           ninja && sudo ninja install && sudo ldconfig
