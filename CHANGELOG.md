@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-13
+
 ### Security
 
 - Bundled liboqs updated from 0.15.0 to [0.16.0](https://github.com/open-quantum-safe/liboqs/releases/tag/0.16.0), which patches five upstream security issues, including [CVE-2026-44518](https://github.com/open-quantum-safe/liboqs/security/advisories/GHSA-wf7v-fhxj-73m2) and [GHSA-2wxh-55qf-c7wg](https://github.com/open-quantum-safe/liboqs/security/advisories/GHSA-2wxh-55qf-c7wg) (moderate, out-of-bounds reads in XMSS/XMSS^MT signature verification). None of the patched code paths (XMSS/XMSS^MT, CROSS, FrodoKEM) are compiled into jwt-pq's ML-DSA-only build, so jwt-pq itself was not exposed; the bump keeps the bundled library on a supported upstream release (#56)
+
+### Dependencies
+
+- Bump `codecov/codecov-action` from 6.0.1 to 7.0.0 (#49)
+- Bump `actions/checkout` from 6.0.3 to 7.0.0 (#52)
 
 ## [0.6.0] - 2026-04-22
 
@@ -155,7 +162,8 @@ Throughput on Ruby 3.4.6, macOS x86_64, liboqs 0.15.0 (benchmark-ips, 2s warmup 
   - Optional dependency on jwt-eddsa / ed25519
 - Error classes: `LiboqsError`, `KeyError`, `SignatureError`, `MissingDependencyError`
 
-[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/marcelopazzo/jwt-pq/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/marcelopazzo/jwt-pq/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/marcelopazzo/jwt-pq/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/marcelopazzo/jwt-pq/compare/v0.4.0...v0.5.0
