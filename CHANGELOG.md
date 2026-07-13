@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Bundled liboqs updated from 0.15.0 to [0.16.0](https://github.com/open-quantum-safe/liboqs/releases/tag/0.16.0), which patches five upstream security issues, including [CVE-2026-44518](https://github.com/open-quantum-safe/liboqs/security/advisories/GHSA-wf7v-fhxj-73m2) and [GHSA-2wxh-55qf-c7wg](https://github.com/open-quantum-safe/liboqs/security/advisories/GHSA-2wxh-55qf-c7wg) (moderate, out-of-bounds reads in XMSS/XMSS^MT signature verification). None of the patched code paths (XMSS/XMSS^MT, CROSS, FrodoKEM) are compiled into jwt-pq's ML-DSA-only build, so jwt-pq itself was not exposed; the bump keeps the bundled library on a supported upstream release (#56)
+- Bundled liboqs updated from 0.15.0 to [0.16.0](https://github.com/open-quantum-safe/liboqs/releases/tag/0.16.0), which patches five upstream security issues, including [CVE-2026-44518](https://github.com/open-quantum-safe/liboqs/security/advisories/GHSA-wf7v-fhxj-73m2) and [GHSA-2wxh-55qf-c7wg](https://github.com/open-quantum-safe/liboqs/security/advisories/GHSA-2wxh-55qf-c7wg) (moderate, out-of-bounds reads in XMSS/XMSS^MT signature verification). None of the patched code paths (XMSS/XMSS^MT, CROSS, FrodoKEM) are compiled into jwt-pq's ML-DSA-only build, so jwt-pq itself was not exposed; the bump keeps the bundled library on a supported upstream release (#57)
 
 ### Dependencies
 
