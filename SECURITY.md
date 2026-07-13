@@ -38,7 +38,7 @@ Out of scope (report upstream):
 
 ## Upstream liboqs advisories
 
-jwt-pq bundles a pinned version of liboqs (see `LIBOQS_VERSION` in `ext/jwt/pq/extconf.rb`, currently **0.15.0**, integrity-checked against a SHA-256 of the source tarball).
+jwt-pq bundles a pinned version of liboqs (see `LIBOQS_VERSION` in `ext/jwt/pq/extconf.rb`, currently **0.16.0**, integrity-checked against a SHA-256 of the source tarball).
 
 When [liboqs](https://github.com/open-quantum-safe/liboqs/security/advisories) publishes a security advisory affecting an algorithm we ship:
 

@@ -10,8 +10,8 @@ require "zlib"
 require "etc"
 require "tmpdir"
 
-LIBOQS_VERSION = "0.15.0"
-LIBOQS_SHA256 = "3983f7cd1247f37fb76a040e6fd684894d44a84cecdcfbdb90559b3216684b5c"
+LIBOQS_VERSION = "0.16.0"
+LIBOQS_SHA256 = "162d5b510518ee5f285f82fa1f16402a885176e818bf1b1a4c3c91c9a2f01eae"
 LIBOQS_URL = "https://github.com/open-quantum-safe/liboqs/archive/refs/tags/#{LIBOQS_VERSION}.tar.gz"
 
 PACKAGE_ROOT_DIR = File.expand_path("../../..", __dir__)
