@@ -14,7 +14,7 @@ group :development, :test do
 end
 
 group :test do
-  gem "jwt-eddsa", "~> 0.9"
+  gem "jwt-eddsa", "~> 1.0"
   gem "simplecov", require: false
   gem "simplecov-cobertura", require: false
 end
