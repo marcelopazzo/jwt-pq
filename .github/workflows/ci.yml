@@ -13,7 +13,11 @@ permissions:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    # Keep the matrix label "ubuntu-latest" (required status-check names depend
+    # on it) but resolve it to the pinned ubuntu-24.04 image. ubuntu-latest
+    # rolled to 26.04, where pqc_asn1 fails to build the native extension under
+    # Ruby 3.2. See PR #76.
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -59,7 +63,7 @@ jobs:
 
   smoke:
     name: Smoke test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

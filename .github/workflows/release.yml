@@ -11,7 +11,7 @@ permissions:
 jobs:
   release:
     name: Build and publish gem
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: rubygems
       url: https://rubygems.org/gems/jwt-pq
