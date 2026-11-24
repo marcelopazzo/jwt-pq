@@ -15,7 +15,7 @@ jobs:
   test:
     # Keep the matrix label "ubuntu-latest" (required status-check names depend
     # on it) but resolve it to the pinned ubuntu-24.04 image. ubuntu-latest
-    # rolled to 25.10, where pqc_asn1 fails to build the native extension under
+    # rolled to 26.04, where pqc_asn1 fails to build the native extension under
     # Ruby 3.2. See PR #76.
     runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     strategy:
